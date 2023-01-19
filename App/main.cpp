@@ -8,9 +8,14 @@
 
 int main()
 {
-    spdlog::set_level(spdlog::level::debug);
+    spdlog::set_level(spdlog::level::info);
 
     VulkanContextBuilder vulkanContextBuilder;
-    auto vkContext = vulkanContextBuilder.SetInstanceExtensions({}).SetInstanceLayers({}).BuildInstance().Build();
+    auto vkContext =
+            vulkanContextBuilder
+            .SetInstanceExtensions({})
+            .EnableValidationLayer()
+            .SetInstanceLayers({"VK_LAYER_KHRONOS_validation"})
+            .Build();
     return 0;
 }

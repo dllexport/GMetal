@@ -13,8 +13,14 @@ public:
     ~VulkanContext();
 private:
     friend class VulkanContextBuilder;
+
     VkInstance instance;
+    VkDebugUtilsMessengerEXT debugMessenger;
+
     VkPhysicalDevice physicalDevice;
     VkDevice device;
     VmaAllocator vmaAllocator;
+
+    std::vector<VkExtensionProperties> enabledInstanceExtensions;
+    std::vector<VkLayerProperties> enabledInstanceLayers;
 };
