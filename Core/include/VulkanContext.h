@@ -11,6 +11,12 @@ class VulkanContext : public IntrusiveUnsafeCounter<VulkanContext> {
 public:
     VulkanContext() = default;
     ~VulkanContext();
+
+    struct DeviceQueueContext {
+        VkQueue queue;
+        uint32_t familyIndex;
+    };
+
 private:
     friend class VulkanContextBuilder;
 
@@ -18,7 +24,12 @@ private:
     VkDebugUtilsMessengerEXT debugMessenger;
 
     VkPhysicalDevice physicalDevice;
-    VkDevice device;
+    VkDevice logicalDevice;
+
+    DeviceQueueContext graphicsQueue;
+    DeviceQueueContext computeQueue;
+    DeviceQueueContext transferQueue;
+
     VmaAllocator vmaAllocator;
 
     std::vector<VkExtensionProperties> enabledInstanceExtensions;

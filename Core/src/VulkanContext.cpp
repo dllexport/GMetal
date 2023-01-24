@@ -7,7 +7,7 @@
 VulkanContext::~VulkanContext()
 {
     vmaDestroyAllocator(vmaAllocator);
-    vkDestroyDevice(device, nullptr);
+    vkDestroyDevice(logicalDevice, nullptr);
     physicalDevice = nullptr;
 
     if (debugMessenger) {

@@ -3,7 +3,11 @@
 //
 
 #include <VulkanContextBuilder.h>
+
+#include <unordered_set>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan.hpp>
+
 #include <ValidationLayerDebugCallback.h>
 
 VulkanContextBuilder::VulkanContextBuilder()
@@ -36,6 +40,7 @@ boost::intrusive_ptr<VulkanContext> VulkanContextBuilder::Build()
 {
     BuildInstance();
     BuildPhysicalDevice();
+    BuildLogicalDevice();
     return this->context;
 }
 
@@ -56,6 +61,18 @@ VulkanContextBuilder& VulkanContextBuilder::SetInstanceExtensions(std::vector<co
 VulkanContextBuilder& VulkanContextBuilder::SetInstanceLayers(std::vector<const char*>&& instanceLayers)
 {
     this->instanceLayers = instanceLayers;
+    return *this;
+}
+
+VulkanContextBuilder& VulkanContextBuilder::SetDeviceExtensions(std::vector<const char*>&& extensions)
+{
+    this->deviceExtensions = extensions;
+    return *this;
+}
+
+VulkanContextBuilder& VulkanContextBuilder::SetDeviceLayers(std::vector<const char*>&& layers)
+{
+    this->deviceLayers = layers;
     return *this;
 }
 
@@ -156,7 +173,7 @@ int VulkanContextBuilder::DefaultPhysicalDeviceSelector(std::vector<VkPhysicalDe
         VkPhysicalDeviceFeatures deviceFeatures;
         vkGetPhysicalDeviceProperties(device, &deviceProperties);
         vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-        if(deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceFeatures.geometryShader)
+        if(deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
         {
             return i;
         }
@@ -169,13 +186,127 @@ void VulkanContextBuilder::BuildPhysicalDevice()
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(context->instance, &deviceCount, nullptr);
     if (!deviceCount) {
-        throw std::runtime_error("failed to find GPUs with Vulkan support!");
+        throw std::runtime_error("Failed to find GPUs with Vulkan support");
     }
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(context->instance, &deviceCount, devices.data());
     auto selectIndex = physicalDeviceSelector(devices);
     if (selectIndex == -1) {
-        throw std::runtime_error("failed to find a suitable GPU!");
+        throw std::runtime_error("Failed to find a suitable GPU");
     }
     context->physicalDevice = devices[selectIndex];
 }
+
+
+std::unordered_map<VkFlags, uint32_t> SelectDeviceQueues(std::vector<VkQueueFamilyProperties>& properties)
+{
+    std::unordered_map<VkFlags, uint32_t> result;
+    for (int i = 0; i < properties.size(); i++)
+    {
+        auto& p = properties[i];
+        spdlog::info("queue {}: {}", i, vk::to_string(vk::QueueFlags(p.queueFlags)));
+
+        if ((p.queueFlags & VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT) && (p.queueFlags & VkQueueFlagBits::VK_QUEUE_COMPUTE_BIT) && (p.queueFlags & VkQueueFlagBits::VK_QUEUE_TRANSFER_BIT))
+        {
+            if (!result.count(VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT))
+                result[VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT] = i;
+        }
+
+        // try find unique compute queue
+        if (!(p.queueFlags & VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT) && (p.queueFlags & VkQueueFlagBits::VK_QUEUE_COMPUTE_BIT))
+        {
+            if (!result.count(VkQueueFlagBits::VK_QUEUE_COMPUTE_BIT))
+                result[VkQueueFlagBits::VK_QUEUE_COMPUTE_BIT] = i;
+        }
+
+        // try find unique transfer queue
+        if (!(p.queueFlags & VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT) && !(p.queueFlags & VkQueueFlagBits::VK_QUEUE_COMPUTE_BIT) && (p.queueFlags & VkQueueFlagBits::VK_QUEUE_TRANSFER_BIT))
+        {
+            if (!result.count(VkQueueFlagBits::VK_QUEUE_TRANSFER_BIT))
+                result[VkQueueFlagBits::VK_QUEUE_TRANSFER_BIT] = i;
+        }
+    }
+
+    if (!result.count(VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT))
+    {
+        throw std::runtime_error("Cannot find VK_QUEUE_GRAPHICS_BIT");
+    }
+
+    if (!result.count(VkQueueFlagBits::VK_QUEUE_COMPUTE_BIT))
+    {
+        result[VkQueueFlagBits::VK_QUEUE_COMPUTE_BIT] = result[VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT];
+    }
+
+    if (!result.count(VkQueueFlagBits::VK_QUEUE_TRANSFER_BIT))
+    {
+        result[VkQueueFlagBits::VK_QUEUE_TRANSFER_BIT] = result[VkQueueFlagBits::VK_QUEUE_TRANSFER_BIT];
+    }
+
+    return result;
+}
+
+static std::unordered_set<uint32_t> ToUniqueQueueFamilySet(std::unordered_map<VkFlags, uint32_t>& queueMap)
+{
+    std::unordered_set<uint32_t> result;
+    for (auto& [k, v] : queueMap)
+    {
+        result.insert(v);
+    }
+    return result;
+}
+
+void VulkanContextBuilder::BuildLogicalDevice()
+{
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(context->physicalDevice, &queueFamilyCount, nullptr);
+
+    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(context->physicalDevice, &queueFamilyCount, queueFamilies.data());
+
+    auto selectedQueues = SelectDeviceQueues(queueFamilies);
+
+    std::vector<VkDeviceQueueCreateInfo> dqcis;
+
+    float queuePriority = 1.0f;
+    for (auto& v : ToUniqueQueueFamilySet(selectedQueues))
+    {
+        VkDeviceQueueCreateInfo dqci = {};
+        dqci.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        dqci.queueFamilyIndex = v;
+        dqci.queueCount = 1;
+        dqci.pQueuePriorities = &queuePriority;
+        dqcis.push_back(dqci);
+    }
+
+    VkPhysicalDeviceFeatures pdf = {};
+
+    VkDeviceCreateInfo dci = {};
+    dci.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    dci.queueCreateInfoCount = dqcis.size();
+    dci.pQueueCreateInfos = dqcis.data();
+    dci.pEnabledFeatures = &pdf;
+    dci.enabledExtensionCount = deviceExtensions.size();
+    dci.ppEnabledExtensionNames = deviceExtensions.data();
+    if (enableValidationLayers)
+    {
+        dci.enabledLayerCount = deviceLayers.size();
+        dci.ppEnabledLayerNames = deviceLayers.data();
+    }
+
+    if (vkCreateDevice(context->physicalDevice, &dci, nullptr, &context->logicalDevice) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create logical device!");
+    }
+
+    VkQueue graphicsQueue;
+    VkQueue computeQueue;
+    VkQueue transferQueue;
+
+    vkGetDeviceQueue(context->logicalDevice, selectedQueues[VK_QUEUE_GRAPHICS_BIT], 0, &graphicsQueue);
+    vkGetDeviceQueue(context->logicalDevice, selectedQueues[VK_QUEUE_COMPUTE_BIT], 0, &computeQueue);
+    vkGetDeviceQueue(context->logicalDevice, selectedQueues[VK_QUEUE_TRANSFER_BIT], 0, &transferQueue);
+
+    context->graphicsQueue = { graphicsQueue, selectedQueues[VK_QUEUE_GRAPHICS_BIT] };
+    context->computeQueue = { computeQueue, selectedQueues[VK_QUEUE_COMPUTE_BIT] };
+    context->transferQueue = { transferQueue, selectedQueues[VK_QUEUE_TRANSFER_BIT] };
+}
+
