@@ -30,6 +30,9 @@ private:
 
     std::vector<VkExtensionProperties> availableInstanceExtensions;
     std::vector<VkLayerProperties> availableInstanceLayers;
+    std::vector<VkExtensionProperties> availablePhysicalDeviceExtensions;
+    std::vector<VkLayerProperties> availablePhysicalDeviceLayers;
+
     bool enableValidationLayers;
     PFN_vkDebugUtilsMessengerCallbackEXT debugUtilsMessengerCallback;
 

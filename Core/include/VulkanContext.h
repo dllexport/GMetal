@@ -3,6 +3,8 @@
 //
 #pragma once
 
+#include <unordered_map>
+
 #include <vulkan/vulkan.h>
 #include <vma/vk_mem_alloc.h>
 #include <IntrusivePtr.h>
@@ -17,6 +19,22 @@ public:
         uint32_t familyIndex;
     };
 
+    VkInstance& GetVkInstance() {
+        return instance;
+    }
+
+    VkPhysicalDevice& GetVkPhysicalDevice() {
+        return physicalDevice;
+    }
+
+    VkDevice& GetVkDevice() {
+        return logicalDevice;
+    }
+
+    VmaAllocator& GetVmaAllocator() {
+        return vmaAllocator;
+    }
+
 private:
     friend class VulkanContextBuilder;
 
@@ -26,9 +44,8 @@ private:
     VkPhysicalDevice physicalDevice;
     VkDevice logicalDevice;
 
-    DeviceQueueContext graphicsQueue;
-    DeviceQueueContext computeQueue;
-    DeviceQueueContext transferQueue;
+    // assume graphics and present are in same queue
+    std::unordered_map<VkQueueFlagBits, DeviceQueueContext> queueContextMap;
 
     VmaAllocator vmaAllocator;
 

@@ -3,3 +3,13 @@
 //
 
 #include <IView.h>
+
+IView::IView(boost::intrusive_ptr<VulkanContext>& context, VkSurfaceKHR surface) : vulkanContext(context), surface(surface)
+{
+
+}
+
+IView::~IView()
+{
+	vkDestroySurfaceKHR(vulkanContext->GetVkInstance(), surface, nullptr);
+}
