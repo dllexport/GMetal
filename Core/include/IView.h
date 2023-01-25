@@ -7,13 +7,12 @@
 #include <IntrusivePtr.h>
 #include <VulkanContext.h>
 #include <SwapChain.h>
-#include <vulkan/vulkan.h>
 
 class IView : public IntrusiveUnsafeCounter<IView> {
 public:
-	IView(boost::intrusive_ptr<VulkanContext>& context, VkSurfaceKHR surface);
+	IView(IntrusivePtr<SwapChain> swapChain);
 	~IView();
-protected:
-	boost::intrusive_ptr<VulkanContext> vulkanContext;
-	VkSurfaceKHR surface;
+private:
+	IntrusivePtr<VulkanContext> vulkanContext;
+	IntrusivePtr<SwapChain> swapChain;
 };

@@ -15,3 +15,11 @@ using IntrusiveCounter = boost::intrusive_ref_counter<T, boost::sp_adl_block::th
 
 template<class T>
 using IntrusiveUnsafeCounter = boost::intrusive_ref_counter<T, boost::sp_adl_block::thread_unsafe_counter>;
+
+namespace gmetal {
+	template <class T, class ... Arg>
+	IntrusivePtr<T> make_intrusive(Arg&&... args)
+	{
+		return IntrusivePtr<T>(new T(std::forward<Arg&&>(args)...));
+	}
+};

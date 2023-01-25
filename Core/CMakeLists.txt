@@ -23,5 +23,6 @@ target_link_libraries(GMetalCore PRIVATE
         $ENV{VULKAN_LIBRARIES}/vulkan-1.lib
         spdlog
         ${Boost_LIBRARIES}
+        GMetalUtils
 )
 

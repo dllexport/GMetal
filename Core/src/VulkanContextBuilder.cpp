@@ -22,11 +22,13 @@ VulkanContextBuilder::VulkanContextBuilder()
         availableInstanceExtensions.resize(count);
         vkEnumerateInstanceExtensionProperties(nullptr, &count, availableInstanceExtensions.data());
 
+#ifndef NDEBUG
         spdlog::debug("available extensions:");
-        for (auto &extension : availableInstanceExtensions)
+        for (auto& extension : availableInstanceExtensions)
         {
             spdlog::debug("{}:{}", extension.extensionName, extension.specVersion);
         }
+#endif
     }
 
     {
@@ -203,6 +205,15 @@ void VulkanContextBuilder::BuildPhysicalDevice()
     vkEnumerateDeviceExtensionProperties(context->physicalDevice, nullptr, &extensionCount, nullptr);
     availablePhysicalDeviceExtensions.resize(extensionCount);
     vkEnumerateDeviceExtensionProperties(context->physicalDevice, nullptr, &extensionCount, availablePhysicalDeviceExtensions.data());
+
+#ifndef NDEBUG
+    spdlog::debug("available device extensions:");
+    for (auto& extension : availablePhysicalDeviceExtensions)
+    {
+        spdlog::debug("{}:{}", extension.extensionName, extension.specVersion);
+    }
+#endif
+
 }
 
 std::unordered_map<VkFlags, uint32_t> SelectDeviceQueues(std::vector<VkQueueFamilyProperties> &properties)

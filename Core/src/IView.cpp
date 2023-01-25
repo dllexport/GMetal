@@ -4,12 +4,11 @@
 
 #include <IView.h>
 
-IView::IView(boost::intrusive_ptr<VulkanContext>& context, VkSurfaceKHR surface) : vulkanContext(context), surface(surface)
+IView::IView(IntrusivePtr<SwapChain> swapChain) : vulkanContext(swapChain->context), swapChain(swapChain)
 {
 
 }
 
 IView::~IView()
 {
-	vkDestroySurfaceKHR(vulkanContext->GetVkInstance(), surface, nullptr);
 }
