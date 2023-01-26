@@ -9,8 +9,10 @@
 #include <IView.h>
 #include <SwapChainBuilder.h>
 #include <PipelineBuilder.h>
+#include <Vertex.h>
 #include <Windows.h>
 #include <WinUser.h>
+
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -79,7 +81,14 @@ int main()
     auto view1 = gmetal::make_intrusive<IView>(swapChain1);
     auto view2 = gmetal::make_intrusive<IView>(swapChain2);
 
-
+    auto pipeline = PipelineBuilder(vkContext)
+        .SetVertexShader("shaders/test.vert.spv")
+        .SetFragmentShader("shaders/test.frag.spv")
+        .SetVertexInput({ VertexComponent::Position, VertexComponent::Color, VertexComponent::Normal, VertexComponent::UV })
+        .SetVertexAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+        .SetRasterizer(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
+        .AddDescriptorSetLayoutBinding({ PipelineBuilder::BuildDescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0) })
+        .Build();
 
     return 0;
 }
