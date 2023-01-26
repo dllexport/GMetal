@@ -7,4 +7,5 @@ add_subdirectory(Core)
 add_subdirectory(App)
 
 add_dependencies(GMetalCore GMetalUtils)
-add_dependencies(GMetalApp GMetalCore)
+
+
