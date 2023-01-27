@@ -15,5 +15,6 @@ private:
 	std::vector<VkAttachmentDescription> attachments;
 	std::vector<IntrusivePtr<Pipeline>> pipelines;
 	VkDescriptorPool descriptorPool;
+	VkRenderPass renderPass;
 	std::vector<VkDescriptorSet> descriptorSets;
 };

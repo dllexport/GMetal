@@ -12,6 +12,10 @@ public:
         return capabilities.currentExtent;
     }
 
+    VkSurfaceFormatKHR SurfaceFormat() {
+        return format;
+    }
+
     VkSurfaceKHR GetSurface() {
         return surface;
     }

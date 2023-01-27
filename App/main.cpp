@@ -9,6 +9,7 @@
 #include <IView.h>
 #include <SwapChainBuilder.h>
 #include <PipelineBuilder.h>
+#include <RenderPassBuilder.h>
 #include <Vertex.h>
 #include <Windows.h>
 #include <WinUser.h>
@@ -80,6 +81,32 @@ int main()
 
     auto view1 = gmetal::make_intrusive<IView>(swapChain1);
     auto view2 = gmetal::make_intrusive<IView>(swapChain2);
+
+
+    std::vector<VkAttachmentDescription> attachments;
+    attachments.resize(2);
+    attachments[0].format = swapChain1->SurfaceFormat().format;                     // Use the color format selected by the swapchain
+    attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;                                 // We don't use multi sampling in this example
+    attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;                            // Clear this attachment at the start of the render pass
+    attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;                          // Keep its contents after the render pass is finished (for displaying it)
+    attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;                 // We don't use stencil, so don't care for load
+    attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;               // Same for store
+    attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;                       // Layout at render pass start. Initial doesn't matter, so we use undefined
+    attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;                   // Layout to which the attachment is transitioned when the render pass is finished
+
+    // attachments[1].format = depthFormat;                                         // A proper depth format is selected in the example base
+    attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
+    attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;                            // Clear depth at start of first subpass
+    attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;                      // We don't need depth after render pass has finished (DONT_CARE may result in better performance)
+    attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;                 // No stencil
+    attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;               // No Stencil
+    attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;                       // Layout at render pass start. Initial doesn't matter, so we use undefined
+    attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;  // Transition to depth/stencil attachment
+
+    auto renderPass = RenderPassBuilder(vkContext)
+        .SetAttachments(attachments)
+        .AddSubPass(VK_PIPELINE_BIND_POINT_GRAPHICS, { {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL} }, { 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL })
+        .Build();
 
     auto pipeline = PipelineBuilder(vkContext)
         .SetVertexShader("shaders/test.vert.spv")
