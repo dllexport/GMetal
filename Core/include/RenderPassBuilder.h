@@ -31,8 +31,6 @@ private:
 	std::vector<SubPassPair> subPassPairs;
 	std::vector<VkSubpassDescription> subPassDescriptions;
 	std::vector<VkSubpassDependency> dependencies;
-	std::vector<IntrusivePtr<Pipeline>> pipelines;
 
 	void BuildSubPass();
-	void BuildDescriptorPool();
 };

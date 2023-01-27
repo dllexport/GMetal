@@ -16,6 +16,10 @@ public:
         return format;
     }
 
+    VkFormat DepthStencilFormat() {
+        return depthStencilFormat;
+    }
+
     VkSurfaceKHR GetSurface() {
         return surface;
     }
@@ -26,6 +30,7 @@ private:
     IntrusivePtr<VulkanContext> context;
     VkSurfaceCapabilitiesKHR capabilities;
     VkSurfaceFormatKHR format;
+    VkFormat depthStencilFormat;
     VkPresentModeKHR presentMode;
 
     VkSurfaceKHR surface;

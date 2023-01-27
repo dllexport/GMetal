@@ -19,10 +19,13 @@ public:
 private:
 	friend class PipelineBuilder;
 	friend class RenderPassBuilder;
+	friend class DescriptorPoolBuilder;
+
 	IntrusivePtr<VulkanContext> context;
 	Type type;
 	VkPipeline pipeline;
+	std::vector<VkShaderModule> shaderModules;
 	VkPipelineLayout pipelineLayouts;
 	std::vector<std::vector<VkDescriptorSetLayoutBinding>> descriptorSetLayoutBindings;
-	VkDescriptorSetLayout descriptorSetLayout;
+	std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
 };

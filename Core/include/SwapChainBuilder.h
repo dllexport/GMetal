@@ -9,6 +9,7 @@ class SwapChainBuilder
 public:
 	SwapChainBuilder(IntrusivePtr<VulkanContext>& context, VkSurfaceKHR surface);
 	SwapChainBuilder& SetPreferFormat(VkSurfaceFormatKHR format);
+	SwapChainBuilder& SetPreferDepthStencilFormat(VkFormat format);
 	SwapChainBuilder& SetPreferPresentMode(VkPresentModeKHR mode);
 	SwapChainBuilder& SetBufferCount(uint32_t count);
 	SwapChainBuilder& SetOldSwapChain(IntrusivePtr<SwapChain> oldSwapChain);
@@ -19,9 +20,11 @@ private:
 	IntrusivePtr<VulkanContext> context;
 	VkSurfaceKHR surface;
 	VkSurfaceFormatKHR preferFormat;
+	VkFormat preferDepthStencilFormat = VK_FORMAT_UNDEFINED;
 	VkPresentModeKHR preferPresentMode;
 	uint32_t bufferCount = 2;
 
 	void BuildSwapChainProperties();
 	void BuildSwapChain();
+	void ResolveDepthStencilFormat();
 };

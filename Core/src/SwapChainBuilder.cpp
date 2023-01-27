@@ -18,6 +18,12 @@ SwapChainBuilder &SwapChainBuilder::SetPreferFormat(VkSurfaceFormatKHR format)
 	return *this;
 }
 
+SwapChainBuilder& SwapChainBuilder::SetPreferDepthStencilFormat(VkFormat format)
+{
+	this->preferDepthStencilFormat = format;
+	return *this;
+}
+
 SwapChainBuilder &SwapChainBuilder::SetPreferPresentMode(VkPresentModeKHR mode)
 {
 	this->preferPresentMode = mode;
@@ -155,12 +161,42 @@ void SwapChainBuilder::BuildSwapChain()
 	}
 }
 
+void SwapChainBuilder::ResolveDepthStencilFormat()
+{
+	// Since all depth formats may be optional, we need to find a suitable depth format to use
+	// Start with the highest precision packed format
+	std::vector<VkFormat> depthFormats = {
+		VK_FORMAT_D32_SFLOAT_S8_UINT,
+		VK_FORMAT_D32_SFLOAT,
+		VK_FORMAT_D24_UNORM_S8_UINT,
+		VK_FORMAT_D16_UNORM_S8_UINT,
+		VK_FORMAT_D16_UNORM
+	};
+
+	if (this->preferDepthStencilFormat != VK_FORMAT_UNDEFINED) {
+		depthFormats.insert(depthFormats.begin(), preferDepthStencilFormat);
+	}
+
+	for (auto& format : depthFormats)
+	{
+		VkFormatProperties formatProps;
+		vkGetPhysicalDeviceFormatProperties(context->GetVkPhysicalDevice(), format, &formatProps);
+		// Format must support depth stencil attachment for optimal tiling
+		if (formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
+		{
+			newSwapChain->depthStencilFormat = format;
+			break;
+		}
+	}
+}
+
 IntrusivePtr<SwapChain> SwapChainBuilder::Build()
 {
 	this->newSwapChain = new SwapChain();
+	newSwapChain->context = this->context;
 	BuildSwapChainProperties();
 	BuildSwapChain();
-	newSwapChain->context = this->context;
+	ResolveDepthStencilFormat();
 	newSwapChain->surface = this->surface;
 	return this->newSwapChain;
 }

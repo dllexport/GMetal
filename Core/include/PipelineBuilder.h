@@ -6,18 +6,19 @@
 #include <VulkanContext.h>
 #include <Pipeline.h>
 #include <Vertex.h>
+#include <RenderPass.h>
 
 class PipelineBuilder
 {
 public:
 	PipelineBuilder(IntrusivePtr<VulkanContext>& context);
+	PipelineBuilder& SetRenderPass(IntrusivePtr<RenderPass>& renderPass, uint32_t subPassIndex);
 	PipelineBuilder& SetVertexShader(std::string path);
 	PipelineBuilder& SetFragmentShader(std::string path);
 	PipelineBuilder& SetComputeShader(std::string path);
 	PipelineBuilder& SetVertexInput(std::vector<VertexComponent> components);
 	PipelineBuilder& SetVertexAssembly(VkPrimitiveTopology topology, VkBool32 restart = VK_FALSE);
 	PipelineBuilder& SetRasterizer(VkPolygonMode polygonMode, VkCullModeFlags cullMode, VkFrontFace frontFace, float lineWidth = 1.0f);
-	PipelineBuilder& SetRenderPass(std::string path, uint32_t index);
 
 	PipelineBuilder& AddDescriptorSetLayoutBinding(std::vector<VkDescriptorSetLayoutBinding>&& bindings);
 
@@ -28,6 +29,8 @@ public:
 private:
 	IntrusivePtr<VulkanContext> context;
 	IntrusivePtr<Pipeline> pipeline;
+	IntrusivePtr<RenderPass> renderPass;
+	uint32_t subPassIndex;
 
 	std::string vertexShaderPath;
 	std::string fragmentShaderPath;
@@ -54,6 +57,9 @@ private:
 
 	VkPipelineViewportStateCreateInfo pvsci = {};
 	void BuildViewPort();
+
+	VkPipelineDepthStencilStateCreateInfo pdssci = {};
+	void BuildDepthStencilState();
 
 	VkPipelineRasterizationStateCreateInfo prsci = {};
 	VkPolygonMode polygonMode;

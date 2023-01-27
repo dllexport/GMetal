@@ -3,13 +3,16 @@
 //
 #include <iostream>
 #include <VulkanContext.h>
-#include <VulkanContextBuilder.h>
 #include <spdlog/spdlog.h>
-#include <SurfaceBuilder.h>
 #include <IView.h>
+
+#include <VulkanContextBuilder.h>
+#include <SurfaceBuilder.h>
 #include <SwapChainBuilder.h>
 #include <PipelineBuilder.h>
 #include <RenderPassBuilder.h>
+#include <DescriptorPoolBuilder.h>
+
 #include <Vertex.h>
 #include <Windows.h>
 #include <WinUser.h>
@@ -94,7 +97,7 @@ int main()
     attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;                       // Layout at render pass start. Initial doesn't matter, so we use undefined
     attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;                   // Layout to which the attachment is transitioned when the render pass is finished
 
-    // attachments[1].format = depthFormat;                                         // A proper depth format is selected in the example base
+    attachments[1].format = swapChain1->DepthStencilFormat();                       // A proper depth format is selected in the example base
     attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
     attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;                            // Clear depth at start of first subpass
     attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;                      // We don't need depth after render pass has finished (DONT_CARE may result in better performance)
@@ -103,19 +106,44 @@ int main()
     attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;                       // Layout at render pass start. Initial doesn't matter, so we use undefined
     attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;  // Transition to depth/stencil attachment
 
+    std::vector<VkSubpassDependency> dependencies(2);
+
+    // Does the transition from final to initial layout for the depth an color attachments
+    // Depth attachment
+    dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependencies[0].dstSubpass = 0;
+    dependencies[0].srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+    dependencies[0].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+    dependencies[0].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+    dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+    // Color attachment
+    dependencies[1].srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependencies[1].dstSubpass = 0;
+    dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependencies[1].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependencies[1].srcAccessMask = 0;
+    dependencies[1].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+    dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
     auto renderPass = RenderPassBuilder(vkContext)
         .SetAttachments(attachments)
         .AddSubPass(VK_PIPELINE_BIND_POINT_GRAPHICS, { {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL} }, { 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL })
+        .AddDependency(dependencies[0])
+        .AddDependency(dependencies[1])
         .Build();
 
     auto pipeline = PipelineBuilder(vkContext)
+        .SetRenderPass(renderPass, 0)
         .SetVertexShader("shaders/test.vert.spv")
         .SetFragmentShader("shaders/test.frag.spv")
-        .SetVertexInput({ VertexComponent::Position, VertexComponent::Color, VertexComponent::Normal, VertexComponent::UV })
+        .SetVertexInput({ VertexComponent::Position, VertexComponent::Color })
         .SetVertexAssembly(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
         .SetRasterizer(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
         .AddDescriptorSetLayoutBinding({ PipelineBuilder::BuildDescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0) })
         .Build();
+
+    DescriptorPoolBuilder(vkContext).SetRenderPass(renderPass).AddPipelines(pipeline).Build();
 
     return 0;
 }

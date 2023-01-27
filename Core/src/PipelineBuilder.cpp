@@ -7,6 +7,13 @@ PipelineBuilder::PipelineBuilder(IntrusivePtr<VulkanContext>& context) : context
 	pipeline = gmetal::make_intrusive<Pipeline>();
 }
 
+PipelineBuilder& PipelineBuilder::SetRenderPass(IntrusivePtr<RenderPass>& renderPass, uint32_t subPassIndex)
+{
+	this->renderPass = renderPass;
+	this->subPassIndex = subPassIndex;
+	return *this;
+}
+
 PipelineBuilder& PipelineBuilder::SetVertexShader(std::string path)
 {
 	this->vertexShaderPath = path;
@@ -76,6 +83,8 @@ void PipelineBuilder::BuildShaderStage()
 	VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
 	VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
 
+	this->pipeline->shaderModules = { vertShaderModule, fragShaderModule };
+
 	// TODO: check compute shader source
 	{
 		VkPipelineShaderStageCreateInfo pssci{};
@@ -89,7 +98,7 @@ void PipelineBuilder::BuildShaderStage()
 	{
 		VkPipelineShaderStageCreateInfo pssci{};
 		pssci.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		pssci.stage = VK_SHADER_STAGE_VERTEX_BIT;
+		pssci.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 		pssci.module = fragShaderModule;
 		pssci.pName = "main";
 		this->shaderStageCIs.push_back(pssci);
@@ -121,6 +130,21 @@ void PipelineBuilder::BuildViewPort()
 	pvsci.viewportCount = 1;
 	pvsci.scissorCount = 1;
 }
+
+void PipelineBuilder::BuildDepthStencilState()
+{
+	pdssci.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	pdssci.depthTestEnable = VK_TRUE;
+	pdssci.depthWriteEnable = VK_TRUE;
+	pdssci.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+	pdssci.depthBoundsTestEnable = VK_FALSE;
+	pdssci.back.failOp = VK_STENCIL_OP_KEEP;
+	pdssci.back.passOp = VK_STENCIL_OP_KEEP;
+	pdssci.back.compareOp = VK_COMPARE_OP_ALWAYS;
+	pdssci.stencilTestEnable = VK_FALSE;
+	pdssci.front = pdssci.back;
+}
+
 
 void PipelineBuilder::BuildRasterizationState()
 {
@@ -196,6 +220,7 @@ void PipelineBuilder::BuildDescriptorSetLayout()
 		descriptorSetLayoutCreateInfo.bindingCount = bindings.size();
 		vkCreateDescriptorSetLayout(context->GetVkDevice(), &descriptorSetLayoutCreateInfo, nullptr, &descriptorSetLayouts[i]);
 	}
+	this->pipeline->descriptorSetLayouts = descriptorSetLayouts;
 }
 
 void PipelineBuilder::BuildDescriptorSet()
@@ -210,6 +235,7 @@ IntrusivePtr<Pipeline> PipelineBuilder::Build()
 	BuildVertexInput();
 	BuildInputAssembly();
 	BuildViewPort();
+	BuildDepthStencilState();
 	BuildRasterizationState();
 	BuildMultisampleState();
 	BuildColorBlendAttachmentState();
@@ -226,14 +252,13 @@ IntrusivePtr<Pipeline> PipelineBuilder::Build()
 	pipelineInfo.pViewportState = &pvsci;
 	pipelineInfo.pRasterizationState = &prsci;
 	pipelineInfo.pMultisampleState = &pmsci;
-	pipelineInfo.pDepthStencilState = nullptr;
+	pipelineInfo.pDepthStencilState = &pdssci;
 	pipelineInfo.pColorBlendState = &pcbsci;
 	pipelineInfo.pDynamicState = &pdsci;
 
 	pipelineInfo.layout = pipelineLayout;
-	// TODO: add render pass builder
-	//pipelineInfo.renderPass = renderPass;
-	//pipelineInfo.subpass = 0;
+	pipelineInfo.renderPass = renderPass->renderPass;
+	pipelineInfo.subpass = subPassIndex;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 	pipelineInfo.basePipelineIndex = -1;
 
