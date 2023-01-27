@@ -7,9 +7,14 @@ RenderPassBuilder::RenderPassBuilder(IntrusivePtr<VulkanContext>& context)
 }
 
 RenderPassBuilder& RenderPassBuilder::SetAttachments(std::vector<VkAttachmentDescription> attachments)
-
 {
 	this->attachments = attachments;
+	return *this;
+}
+
+RenderPassBuilder& RenderPassBuilder::SetClearValues(std::vector<VkClearValue> values)
+{
+	this->clearValues = values;
 	return *this;
 }
 
@@ -72,6 +77,8 @@ IntrusivePtr<RenderPass> RenderPassBuilder::Build()
 {
 	this->renderPass = gmetal::make_intrusive<RenderPass>();
 	this->renderPass->context = this->context;
+	this->renderPass->clearValues = this->clearValues;
+	this->renderPass->attachments = this->attachments;
 	BuildSubPass();
 	return renderPass;
 }

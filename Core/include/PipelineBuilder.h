@@ -19,7 +19,6 @@ public:
 	PipelineBuilder& SetVertexInput(std::vector<VertexComponent> components);
 	PipelineBuilder& SetVertexAssembly(VkPrimitiveTopology topology, VkBool32 restart = VK_FALSE);
 	PipelineBuilder& SetRasterizer(VkPolygonMode polygonMode, VkCullModeFlags cullMode, VkFrontFace frontFace, float lineWidth = 1.0f);
-
 	PipelineBuilder& AddDescriptorSetLayoutBinding(std::vector<VkDescriptorSetLayoutBinding>&& bindings);
 
 	IntrusivePtr<Pipeline> Build();

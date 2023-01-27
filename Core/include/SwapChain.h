@@ -12,11 +12,11 @@ public:
         return capabilities.currentExtent;
     }
 
-    VkSurfaceFormatKHR SurfaceFormat() {
+    static VkSurfaceFormatKHR SurfaceFormat() {
         return format;
     }
 
-    VkFormat DepthStencilFormat() {
+    static VkFormat DepthStencilFormat() {
         return depthStencilFormat;
     }
 
@@ -24,13 +24,18 @@ public:
         return surface;
     }
 
+    uint32_t Size()
+    {
+        return this->swapChainImages.size();
+    }
+
 private:
     friend class SwapChainBuilder;
     friend class IView;
     IntrusivePtr<VulkanContext> context;
     VkSurfaceCapabilitiesKHR capabilities;
-    VkSurfaceFormatKHR format;
-    VkFormat depthStencilFormat;
+    inline static VkSurfaceFormatKHR format;
+    inline static VkFormat depthStencilFormat;
     VkPresentModeKHR presentMode;
 
     VkSurfaceKHR surface;

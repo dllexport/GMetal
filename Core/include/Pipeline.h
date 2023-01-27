@@ -4,6 +4,7 @@
 
 #include <IntrusivePtr.h>
 #include <VulkanContext.h>
+#include <Drawable.h>
 
 class Pipeline : public IntrusiveUnsafeCounter<Pipeline>
 {
@@ -21,11 +22,14 @@ private:
 	friend class RenderPassBuilder;
 	friend class DescriptorPoolBuilder;
 
+	friend class Renderer;
+
 	IntrusivePtr<VulkanContext> context;
 	Type type;
 	VkPipeline pipeline;
 	std::vector<VkShaderModule> shaderModules;
-	VkPipelineLayout pipelineLayouts;
+	VkPipelineLayout pipelineLayout;
 	std::vector<std::vector<VkDescriptorSetLayoutBinding>> descriptorSetLayoutBindings;
 	std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
+	std::vector<VkDescriptorSet> descriptorSets;
 };
