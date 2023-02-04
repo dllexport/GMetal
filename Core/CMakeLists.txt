@@ -39,12 +39,12 @@ add_dependencies(GMetalCore Shaders)
 
 target_include_directories(GMetalCore PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
-        $ENV{VULKAN_HEADERS}
+        $ENV{VULKAN_SDK}/Include
         ${Boost_INCLUDE_DIRS}
 )
 
 target_link_libraries(GMetalCore PRIVATE
-        $ENV{VULKAN_LIBRARIES}/vulkan-1.lib
+        $ENV{VULKAN_SDK}/Lib/vulkan-1.lib
         spdlog
         ${Boost_LIBRARIES}
         GMetalUtils
