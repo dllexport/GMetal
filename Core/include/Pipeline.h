@@ -21,7 +21,6 @@ private:
 	friend class PipelineBuilder;
 	friend class RenderPassBuilder;
 	friend class DescriptorPoolBuilder;
-
 	friend class Renderer;
 
 	IntrusivePtr<VulkanContext> context;
@@ -31,5 +30,4 @@ private:
 	VkPipelineLayout pipelineLayout;
 	std::vector<std::vector<VkDescriptorSetLayoutBinding>> descriptorSetLayoutBindings;
 	std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
-	std::vector<VkDescriptorSet> descriptorSets;
 };

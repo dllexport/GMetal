@@ -1,5 +1,9 @@
 #include <Renderer.h>
 #include <Material.h>
+#include <FrameGraph.h>
+#include <RenderPassNode.h>
+#include <ResourceNode.h>
+
 #include <spdlog/spdlog.h>
 
 void Renderer::AddView(IntrusivePtr<IView>& view) {
@@ -33,7 +37,27 @@ void Renderer::StartFrame()
 {
 	for (auto& [view, renderMap] : views)
 	{
-		for (auto& [rp, drawables] : renderMap) 
+		FrameGraph fg;
+		auto gbufferPass = fg.CreateNode<RenderPassNode>("gbuffer pass");
+		auto fb = fg.CreateNode<ResourceNode>("fb");
+		auto depth = fg.CreateNode<ResourceNode>("depth");
+		auto color = fg.CreateNode<ResourceNode>("color");
+		auto normal = fg.CreateNode<ResourceNode>("normal");
+		auto position = fg.CreateNode<ResourceNode>("position");
+		auto mergePass = fg.CreateNode<RenderPassNode>("merge pass");
+
+		gbufferPass->Write(color);
+		gbufferPass->Write(normal);
+		gbufferPass->Write(position);
+
+		mergePass->Read(color);
+		mergePass->Read(normal);
+		mergePass->Read(position);
+
+		mergePass->Write(fb);
+
+		fg.TopoSort();
+		for (auto& [rp, drawables] : renderMap)
 		{
 			BuildFrameCommandBuffer(view, rp, drawables);
 		}
