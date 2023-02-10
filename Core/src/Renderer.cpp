@@ -57,6 +57,9 @@ void Renderer::StartFrame()
 		mergePass->Write(fb);
 
 		fg.TopoSort();
+
+		fg.Compile();
+
 		for (auto& [rp, drawables] : renderMap)
 		{
 			BuildFrameCommandBuffer(view, rp, drawables);

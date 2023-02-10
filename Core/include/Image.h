@@ -1,13 +1,15 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include <vma/vk_mem_alloc.h>
 
 class Image
 {
+public:
+	VkImageView CreateView();
 private:
 	friend class ImageBuilder;
-	VkImage image = VK_NULL_HANDLE;
-	VkDeviceMemory mem = VK_NULL_HANDLE;
-	VkImageView view = VK_NULL_HANDLE;
-	VkFormat format;
+	VkImage image;
+	VmaAllocation allocation;
+	VkImageCreateInfo vici;
 };

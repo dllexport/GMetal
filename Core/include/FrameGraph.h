@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <FrameGraphNode.h>
 
 class FrameGraph : public IntrusiveCounter<FrameGraph>
@@ -22,9 +23,12 @@ public:
 	void Link(IntrusivePtr<FrameGraphNode>&& from, IntrusivePtr<FrameGraphNode>&& to);
 
 	void TopoSort();
+	void Compile();
 
 private:
 	std::vector<IntrusivePtr<FrameGraphNode>> nodes;
 	std::unordered_map<IntrusivePtr<FrameGraphNode>, std::vector<IntrusivePtr<FrameGraphNode>>> nodesInMap;
 	std::unordered_map<IntrusivePtr<FrameGraphNode>, std::vector<IntrusivePtr<FrameGraphNode>>> nodesOutMap;
+
+	std::unordered_set<IntrusivePtr<FrameGraphNode>> attachmentsNode;
 };

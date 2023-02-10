@@ -47,3 +47,9 @@ void FrameGraph::TopoSort()
 	}
 
 }
+
+void FrameGraph::Compile()
+{
+	// get attachments count
+
+}
