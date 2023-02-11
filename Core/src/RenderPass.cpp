@@ -2,6 +2,7 @@
 #include <RenderPassBuilder.h>
 #include <SwapChain.h>
 #include <ImageBuilder.h>
+#include <FrameGraph.h>
 
 RenderPass::~RenderPass()
 {

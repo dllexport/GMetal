@@ -67,7 +67,7 @@ HWND CreateWin32Window()
 IntrusivePtr<RenderPass> BuildDefaultRenderPass(IntrusivePtr<VulkanContext> context, IntrusivePtr<SwapChain> swapchain)
 {
     std::vector<VkAttachmentDescription> attachments(2);
-    attachments[0].format = swapchain->SurfaceFormat().format;                     // Use the color format selected by the swapchain
+    attachments[0].format = swapchain->GetSurfaceFormat().format;                     // Use the color format selected by the swapchain
     attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;                                 // We don't use multi sampling in this example
     attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;                            // Clear this attachment at the start of the render pass
     attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;                          // Keep its contents after the render pass is finished (for displaying it)

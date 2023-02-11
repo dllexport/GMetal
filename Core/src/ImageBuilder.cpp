@@ -27,6 +27,7 @@ ImageBuilder& ImageBuilder::SetBasic(VkImageType type, VkFormat format, VkExtent
 	vici.format = format;
 	vici.extent = extent;
 	vici.usage = usage;
+	return *this;
 }
 
 ImageBuilder& ImageBuilder::SetMipLevel(uint32_t level)
@@ -65,6 +66,7 @@ ImageBuilder& ImageBuilder::SetAllocationInfo(VmaMemoryUsage usage, VmaAllocatio
 	vaci.usage = VMA_MEMORY_USAGE_AUTO;
 	vaci.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 	vaci.priority = 1.0f;
+	return *this;
 }
 
 IntrusivePtr<Image> ImageBuilder::Build()

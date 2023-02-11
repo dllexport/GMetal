@@ -19,7 +19,4 @@ public:
 	void Write(IntrusivePtr<T>& node) {
 		this->fg->Link(this, node);
 	}
-
-private:
-
 };

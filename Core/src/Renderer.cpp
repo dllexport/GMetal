@@ -3,6 +3,7 @@
 #include <FrameGraph.h>
 #include <RenderPassNode.h>
 #include <ResourceNode.h>
+#include <ImageResourceNode.h>
 
 #include <spdlog/spdlog.h>
 
@@ -37,33 +38,55 @@ void Renderer::StartFrame()
 {
 	for (auto& [view, renderMap] : views)
 	{
-		FrameGraph fg;
-		auto gbufferPass = fg.CreateNode<RenderPassNode>("gbuffer pass");
-		auto fb = fg.CreateNode<ResourceNode>("fb");
-		auto depth = fg.CreateNode<ResourceNode>("depth");
-		auto color = fg.CreateNode<ResourceNode>("color");
-		auto normal = fg.CreateNode<ResourceNode>("normal");
-		auto position = fg.CreateNode<ResourceNode>("position");
-		auto mergePass = fg.CreateNode<RenderPassNode>("merge pass");
+		auto swapChainImage = view->GetSwapChain()->GetImages()[frameNumber % 2];
+		auto surfaceFormat = view->GetSwapChain()->GetSurfaceFormat();
+		auto depthFormat = view->GetSwapChain()->DepthStencilFormat();
+
+		auto fg = gmetal::make_intrusive<FrameGraph>();
+		auto gbufferPass = fg->CreatePass<RenderPassNode>("gbuffer pass");
+
+	/*	auto rrPass = fg->CreateNode<RenderPassNode>("rr pass");
+		auto rr = fg->CreateNode<ImageResourceNode>("rr node");
+		rrPass->Read(rr);*/
+
+		auto depth = fg->CreateImage<ImageResourceNode>("depth", depthFormat);
+		depth->SetDepthStencil();
+
+		auto color = fg->CreateImage<ImageResourceNode>("color", swapChainImage);
+		color->SetColor();
+
+		auto fb = fg->CreateImage<ImageResourceNode>("fb", surfaceFormat.format);
+		auto normal = fg->CreateImage<ImageResourceNode>("normal", surfaceFormat.format);
+		auto albedo = fg->CreateImage<ImageResourceNode>("albedo", surfaceFormat.format);
+		auto position = fg->CreateImage<ImageResourceNode>("position", surfaceFormat.format);
+		auto mergePass = fg->CreatePass<RenderPassNode>("merge pass");
 
 		gbufferPass->Write(color);
 		gbufferPass->Write(normal);
+		gbufferPass->Write(albedo);
 		gbufferPass->Write(position);
+		gbufferPass->Write(depth);
 
 		mergePass->Read(color);
+		mergePass->Read(albedo);
 		mergePass->Read(normal);
 		mergePass->Read(position);
+		mergePass->Read(depth);
 
 		mergePass->Write(fb);
 
-		fg.TopoSort();
+		fb->Retain();
 
-		fg.Compile();
+		auto finalPass = fg->CreateNode<RenderPassNode>("final pass");
+		finalPass->Read(fb);
+		finalPass->Retain();
 
-		for (auto& [rp, drawables] : renderMap)
-		{
-			BuildFrameCommandBuffer(view, rp, drawables);
-		}
+		fg->Compile();
+
+		//for (auto& [rp, drawables] : renderMap)
+		//{
+		//	BuildFrameCommandBuffer(view, rp, drawables);
+		//}
 	}
 }
 

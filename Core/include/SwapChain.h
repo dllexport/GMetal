@@ -2,6 +2,8 @@
 
 #include <VulkanContext.h>
 #include <vulkan/vulkan.h>
+#include <Image.h>
+#include <ImageView.h>
 
 class SwapChain : public IntrusiveUnsafeCounter<SwapChain>
 {
@@ -12,7 +14,7 @@ public:
         return capabilities.currentExtent;
     }
 
-    static VkSurfaceFormatKHR SurfaceFormat() {
+    static VkSurfaceFormatKHR GetSurfaceFormat() {
         return format;
     }
 
@@ -29,6 +31,16 @@ public:
         return this->swapChainImages.size();
     }
 
+    std::vector<IntrusivePtr<Image>>& GetImages()
+    {
+        return this->swapChainImages;
+    }
+
+    std::vector<IntrusivePtr<ImageView>>& GetImageViews()
+    {
+        return this->swapChainImageViews;
+    }
+
 private:
     friend class SwapChainBuilder;
     friend class IView;
@@ -40,6 +52,6 @@ private:
 
     VkSurfaceKHR surface;
     VkSwapchainKHR swapChain;
-    std::vector<VkImage> swapChainImages;
-    std::vector<VkImageView> swapChainImageViews;
+    std::vector<IntrusivePtr<Image>> swapChainImages;
+    std::vector<IntrusivePtr<ImageView>> swapChainImageViews;
 };
