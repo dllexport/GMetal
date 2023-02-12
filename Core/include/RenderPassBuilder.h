@@ -10,7 +10,7 @@ public:
 	RenderPassBuilder(IntrusivePtr<VulkanContext>& context);
 	RenderPassBuilder& SetAttachments(std::vector<VkAttachmentDescription> attachments);
 	RenderPassBuilder& SetClearValues(std::vector<VkClearValue> values);
-	RenderPassBuilder& AddSubPass(VkPipelineBindPoint bindPoint, std::vector<VkAttachmentReference>&& colorRefs, VkAttachmentReference depthStencilRef, std::vector<VkAttachmentReference>&& inputRefs = {}, std::vector<uint32_t>&& reserveRefs = {}, VkAttachmentReference resolveRef = {});
+	RenderPassBuilder& AddSubPass(VkPipelineBindPoint bindPoint, std::vector<VkAttachmentReference>&& colorRefs, std::vector<VkAttachmentReference>&& depthStencilRef, std::vector<VkAttachmentReference>&& inputRefs = {}, std::vector<uint32_t>&& reserveRefs = {}, VkAttachmentReference resolveRef = {});
 	RenderPassBuilder& AddDependency(VkSubpassDependency dependency);
 	IntrusivePtr<RenderPass> Build();
 
@@ -24,7 +24,7 @@ private:
 		std::vector<VkAttachmentReference> colorRefs;
 		std::vector<uint32_t> reserveRefs;
 		VkAttachmentReference resolveRef;
-		VkAttachmentReference depthStencilRef;
+		std::vector<VkAttachmentReference> depthStencilRef;
 		VkPipelineBindPoint bindPoint;
 	};
 	

@@ -1,7 +1,7 @@
 #include <FrameGraphNode.h>
 #include <FrameGraph.h>
 
-FrameGraphNode::FrameGraphNode(IntrusivePtr<FrameGraph> fg) : fg(fg)
+FrameGraphNode::FrameGraphNode(FrameGraph* fg) : fg(fg)
 {
 
 }

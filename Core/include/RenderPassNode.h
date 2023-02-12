@@ -3,6 +3,7 @@
 #include <FrameGraph.h>
 #include <FrameGraphNode.h>
 #include <IntrusivePtr.h>
+#include <Pipeline.h>
 
 class RenderPassNode : public FrameGraphNode
 {
@@ -19,4 +20,11 @@ public:
 	void Write(IntrusivePtr<T>& node) {
 		this->fg->Link(this, node);
 	}
+
+private:
+	friend class FrameGraph;
+	std::function<IntrusivePtr<Pipeline>(IntrusivePtr<RenderPass>& renderPass, uint32_t subpassIndex)> pipelineSetupFn;
+
+public:
+	void Setup(decltype(pipelineSetupFn)&& fn) { pipelineSetupFn = fn; }
 };

@@ -7,13 +7,15 @@
 #include <vulkan/vulkan.h>
 #include <spdlog/spdlog.h>
 
+#include <VulkanContext.h>
 #include <RenderPass.h>
 #include <FrameGraphNode.h>
 
 class FrameGraph : public IntrusiveCounter<FrameGraph>
 {
 public:
-	FrameGraph();
+	FrameGraph(IntrusivePtr<VulkanContext>& context);
+	~FrameGraph();
 
 	template<class T, class ...Args>
 	IntrusivePtr<T> CreateNode(std::string name, Args&& ... args)
@@ -47,6 +49,7 @@ public:
 	void Compile();
 
 private:
+	IntrusivePtr<VulkanContext>& context;
 	std::vector<IntrusivePtr<FrameGraphNode>> imageNodes;
 	std::vector<IntrusivePtr<FrameGraphNode>> passNodes;
 	std::unordered_map<IntrusivePtr<FrameGraphNode>, std::vector<IntrusivePtr<FrameGraphNode>>> nodesInMap;

@@ -5,10 +5,17 @@
 
 #include <ImageResourceNode.h>
 #include <RenderPassNode.h>
+#include <RenderPassBuilder.h>
+#include <PipelineBuilder.h>
 
-FrameGraph::FrameGraph()
+FrameGraph::FrameGraph(IntrusivePtr<VulkanContext>& context) : context(context)
 {
 
+}
+
+FrameGraph::~FrameGraph()
+{
+	spdlog::info("die");
 }
 
 void FrameGraph::Link(IntrusivePtr<FrameGraphNode>&& from, IntrusivePtr<FrameGraphNode>&& to)
@@ -107,37 +114,108 @@ void FrameGraph::TraceBack(const IntrusivePtr<FrameGraphNode>& node)
 
 void FrameGraph::BuildRenderPass()
 {
+	auto renderPassBuilder = RenderPassBuilder(context);
+
+	std::vector<VkClearValue> clearValues;
+	clearValues.resize(imageNodes.size());
+
 	std::vector<VkAttachmentDescription> vads;
-	for (auto& imageNode : imageNodes)
+	std::unordered_map<IntrusivePtr<FrameGraphNode>, uint32_t> vadsMap;
+
+	for (uint32_t i = 0; i < imageNodes.size(); i++)
 	{
-		if (imageNode->refCount > 0) {
-			auto imageResourceNode = static_cast<ImageResourceNode*>(imageNode.get());
-			vads.push_back(imageResourceNode->vad);
+		auto imageResourceNode = static_cast<ImageResourceNode*>(imageNodes[i].get());
+		vadsMap[imageResourceNode] = i;
+		vads.push_back(imageResourceNode->vad);
+		if (imageResourceNode->isDepthStencil) {
+			VkClearValue cv = {};
+			cv.depthStencil = { 1.0f, 0 };
+			clearValues[i] = cv;
+		}
+		else {
+			VkClearValue cv = {};
+			cv.color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+			clearValues[i] = cv;
 		}
 	}
 
-	std::vector<VkSubpassDescription> vsds;
-	std::vector<VkAttachmentReference> vafs;
+	renderPassBuilder.SetAttachments(vads);
 
-	for (int i = 0; i < passNodes.size(); i++)
+	for (uint32_t i = 0; i < passNodes.size(); i++)
 	{
+		std::vector<VkAttachmentReference> colorRefs;
+		std::vector<VkAttachmentReference> inputRefs;
+		std::vector<VkAttachmentReference> depthRef;
+
 		auto renderPassNode = static_cast<RenderPassNode*>(passNodes[i].get());
 		auto& ins = this->nodesInMap[renderPassNode];
 		auto& outs = this->nodesOutMap[renderPassNode];
 
+		bool haveSwapChainAttachment = false;
+		// record color refs
 		for (uint32_t j = 0; j < outs.size(); j++)
 		{
-			VkAttachmentReference vaf{ j, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-			vafs.push_back(vaf);
+ 			auto imageResourceNode = static_cast<ImageResourceNode*>(outs[j].get());
+			if (imageResourceNode->isDepthStencil) {
+				depthRef.push_back({ vadsMap[imageResourceNode], VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL });
+				continue;
+			}
+			if (imageResourceNode->isSwapChainImage) {
+				haveSwapChainAttachment = true;
+			}
+			colorRefs.push_back({ vadsMap[imageResourceNode], VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
 		}
 
-		VkSubpassDescription vsd;
-		vsd.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		vsd.colorAttachmentCount = outs.size();
-		vsd.pColorAttachments = vafs.data();
-		vsd.pDepthStencilAttachment = &depthReference;
-		vsds.push_back(vsd);
+		// record input refs
+		for (uint32_t j = 0; j < ins.size(); j++)
+		{
+			auto imageResourceNode = static_cast<ImageResourceNode*>(ins[j].get());
+			inputRefs.push_back({ vadsMap[imageResourceNode], VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL });
+		}
+		renderPassBuilder.AddSubPass(VK_PIPELINE_BIND_POINT_GRAPHICS, std::move(colorRefs), std::move(depthRef), std::move(inputRefs));
+		
+		bool depRequired = false;
+		VkSubpassDependency dep = {};
+		if (haveSwapChainAttachment) {
+			VkSubpassDependency dep = {};
+			dep.srcSubpass = VK_SUBPASS_EXTERNAL;
+			dep.dstSubpass = i;
+			dep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dep.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dep.srcAccessMask = 0;
+			dep.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			dep.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+			renderPassBuilder.AddDependency(dep);
+		}
+
+		if (ins.size() > 0 && outs.size() > 0) {
+			dep.srcStageMask |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dep.dstStageMask |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			dep.srcAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			dep.dstAccessMask |= VK_ACCESS_SHADER_READ_BIT;
+			depRequired = true;
+		}
+
+		dep.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+		if (depRequired)
+		{
+			dep.srcSubpass = i - 1;
+			dep.dstSubpass = i;
+			renderPassBuilder.AddDependency(dep);
+		}
 	}
+
+	this->renderPass = renderPassBuilder.Build();
+
+	for (int i = 0; i < passNodes.size(); i++)
+	{
+		auto rpNode = static_cast<RenderPassNode*>(passNodes[i].get());
+		auto pipeline = rpNode->pipelineSetupFn(renderPass, i);
+		renderPass->GetPipelines().push_back(pipeline);
+	}
+
+	
 }
 
 void FrameGraph::Compile()

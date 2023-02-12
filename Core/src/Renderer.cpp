@@ -4,8 +4,13 @@
 #include <RenderPassNode.h>
 #include <ResourceNode.h>
 #include <ImageResourceNode.h>
-
+#include <PipelineBuilder.h>
 #include <spdlog/spdlog.h>
+
+Renderer::Renderer(IntrusivePtr<VulkanContext>& context) : context(context)
+{
+
+}
 
 void Renderer::AddView(IntrusivePtr<IView>& view) {
 	if (views.find(view) == views.end()) {
@@ -42,18 +47,28 @@ void Renderer::StartFrame()
 		auto surfaceFormat = view->GetSwapChain()->GetSurfaceFormat();
 		auto depthFormat = view->GetSwapChain()->DepthStencilFormat();
 
-		auto fg = gmetal::make_intrusive<FrameGraph>();
-		auto gbufferPass = fg->CreatePass<RenderPassNode>("gbuffer pass");
+		auto fg = gmetal::make_intrusive<FrameGraph>(this->context);
 
-	/*	auto rrPass = fg->CreateNode<RenderPassNode>("rr pass");
-		auto rr = fg->CreateNode<ImageResourceNode>("rr node");
-		rrPass->Read(rr);*/
+		auto gbufferPass = fg->CreatePass<RenderPassNode>("gbuffer pass");
+		gbufferPass->Setup([&](IntrusivePtr<RenderPass>& renderPass, uint32_t subpassIndex) {
+			return PipelineBuilder(context)
+			.SetRenderPass(renderPass, subpassIndex)
+			.SetVertexShader("shaders/test.vert.spv")
+			.SetFragmentShader("shaders/test.frag.spv")
+			.SetVertexInput({ VertexComponent::Position, VertexComponent::Color })
+			.SetRasterizer(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
+			.AddDescriptorSetLayoutBinding({ PipelineBuilder::BuildDescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0) })
+			.Build();
+		});
+
+		auto rrPass = fg->CreateNode<RenderPassNode>("rr pass");
+		auto rr = fg->CreateNode<ImageResourceNode>("rr node", swapChainImage);
 
 		auto depth = fg->CreateImage<ImageResourceNode>("depth", depthFormat);
 		depth->SetDepthStencil();
 
 		auto color = fg->CreateImage<ImageResourceNode>("color", swapChainImage);
-		color->SetColor();
+		color->SetSwapChainImage();
 
 		auto fb = fg->CreateImage<ImageResourceNode>("fb", surfaceFormat.format);
 		auto normal = fg->CreateImage<ImageResourceNode>("normal", surfaceFormat.format);
@@ -61,13 +76,11 @@ void Renderer::StartFrame()
 		auto position = fg->CreateImage<ImageResourceNode>("position", surfaceFormat.format);
 		auto mergePass = fg->CreatePass<RenderPassNode>("merge pass");
 
-		gbufferPass->Write(color);
 		gbufferPass->Write(normal);
 		gbufferPass->Write(albedo);
 		gbufferPass->Write(position);
 		gbufferPass->Write(depth);
 
-		mergePass->Read(color);
 		mergePass->Read(albedo);
 		mergePass->Read(normal);
 		mergePass->Read(position);
@@ -75,18 +88,13 @@ void Renderer::StartFrame()
 
 		mergePass->Write(fb);
 
-		fb->Retain();
-
-		auto finalPass = fg->CreateNode<RenderPassNode>("final pass");
+		auto finalPass = fg->CreatePass<RenderPassNode>("final pass");
 		finalPass->Read(fb);
-		finalPass->Retain();
+		finalPass->Read(depth);
+		finalPass->Write(color);
+		color->Retain();
 
 		fg->Compile();
-
-		//for (auto& [rp, drawables] : renderMap)
-		//{
-		//	BuildFrameCommandBuffer(view, rp, drawables);
-		//}
 	}
 }
 

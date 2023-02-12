@@ -21,11 +21,13 @@ public:
 	void SetFinalLayout(VkImageLayout layout);
 
 	void SetDepthStencil();
-	void SetColor();
+	void SetSwapChainImage();
 
 private:
 	friend class FrameGraph;
 	IntrusivePtr<Image> image;
 	IntrusivePtr<ImageView> imageView;
 	VkAttachmentDescription vad;
+	bool isDepthStencil = false;
+	bool isSwapChainImage = false;
 };

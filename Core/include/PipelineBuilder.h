@@ -50,8 +50,8 @@ private:
 	void BuildVertexInput();
 
 	VkPipelineInputAssemblyStateCreateInfo piasci = {};
-	VkPrimitiveTopology topology;
-	VkBool32 primitiveRestartEnable;
+	VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+	VkBool32 primitiveRestartEnable = false;
 	void BuildInputAssembly();
 
 	VkPipelineViewportStateCreateInfo pvsci = {};

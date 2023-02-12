@@ -18,7 +18,7 @@ RenderPassBuilder& RenderPassBuilder::SetClearValues(std::vector<VkClearValue> v
 	return *this;
 }
 
-RenderPassBuilder& RenderPassBuilder::AddSubPass(VkPipelineBindPoint bindPoint, std::vector<VkAttachmentReference>&& colorRefs, VkAttachmentReference depthStencilRef, std::vector<VkAttachmentReference>&& inputRefs, std::vector<uint32_t>&& reserveRefs, VkAttachmentReference resolveRef)
+RenderPassBuilder& RenderPassBuilder::AddSubPass(VkPipelineBindPoint bindPoint, std::vector<VkAttachmentReference>&& colorRefs, std::vector<VkAttachmentReference>&& depthStencilRef, std::vector<VkAttachmentReference>&& inputRefs, std::vector<uint32_t>&& reserveRefs, VkAttachmentReference resolveRef)
 {
 	SubPassPair pair = {};
 	pair.colorRefs = colorRefs;
@@ -44,7 +44,9 @@ void RenderPassBuilder::BuildSubPass()
 		sd.pipelineBindPoint = pair.bindPoint;
 		sd.colorAttachmentCount = pair.colorRefs.size();
 		sd.pColorAttachments = pair.colorRefs.data();
-		sd.pDepthStencilAttachment = &pair.depthStencilRef;
+		if (!pair.depthStencilRef.empty()) {
+			sd.pDepthStencilAttachment = &pair.depthStencilRef[0];
+		}
 		sd.inputAttachmentCount = pair.inputRefs.size();
 		sd.pInputAttachments = pair.inputRefs.data();
 		sd.preserveAttachmentCount = pair.reserveRefs.size();
@@ -75,7 +77,7 @@ void RenderPassBuilder::BuildSubPass()
 
 IntrusivePtr<RenderPass> RenderPassBuilder::Build()
 {
-	this->renderPass = gmetal::make_intrusive<RenderPass>();
+	this->renderPass = gmetal::make_intrusive<RenderPass>(context);
 	this->renderPass->context = this->context;
 	this->renderPass->clearValues = this->clearValues;
 	this->renderPass->attachments = this->attachments;

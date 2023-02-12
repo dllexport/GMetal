@@ -3,6 +3,7 @@
 
 ImageResourceNode::ImageResourceNode(VkFormat format)
 {
+	vad.flags = 0;
 	vad.format = format;
 	vad.samples = VK_SAMPLE_COUNT_1_BIT;
 	vad.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -10,7 +11,7 @@ ImageResourceNode::ImageResourceNode(VkFormat format)
 	vad.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	vad.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	vad.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	vad.finalLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	vad.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 }
 
 ImageResourceNode::ImageResourceNode(IntrusivePtr<Image>& image)
@@ -61,18 +62,22 @@ void ImageResourceNode::AttachmentDescriptionOverride(VkAttachmentDescription de
 
 void ImageResourceNode::SetDepthStencil()
 {
+	vad.flags = 0;
 	vad.samples = VK_SAMPLE_COUNT_1_BIT;
 	vad.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	vad.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	vad.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	vad.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	vad.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	this->isDepthStencil = true;
 }
 
-void ImageResourceNode::SetColor()
+void ImageResourceNode::SetSwapChainImage()
 {
 	if (image) {
 		vad.format = image->GetFormat();
 	}
+	vad.flags = 0;
 	vad.samples = VK_SAMPLE_COUNT_1_BIT;
 	vad.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	vad.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -80,4 +85,5 @@ void ImageResourceNode::SetColor()
 	vad.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	vad.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	vad.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	this->isSwapChainImage = true;
 }

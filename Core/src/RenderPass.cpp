@@ -4,6 +4,11 @@
 #include <ImageBuilder.h>
 #include <FrameGraph.h>
 
+RenderPass::RenderPass(IntrusivePtr<VulkanContext>& context) : context(context)
+{
+
+}
+
 RenderPass::~RenderPass()
 {
 	vkDestroyDescriptorPool(context->GetVkDevice(), this->descriptorPool, nullptr);
@@ -15,7 +20,7 @@ std::vector<VkClearValue>& RenderPass::GetClearValue()
 	return this->clearValues;
 }
 
-VkRenderPass RenderPass::GetRenderPass()
+VkRenderPass& RenderPass::GetRenderPass()
 {
 	return this->renderPass;
 }

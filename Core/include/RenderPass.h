@@ -3,17 +3,17 @@
 #include <vulkan/vulkan.h>
 #include <vector>
 #include <Pipeline.h>
-#include <IntrusivePtr.h>
+#include <VulkanContext.h>
 #include <Drawable.h>
 
 class RenderPass : public IntrusiveCounter<RenderPass>
 {
 public:
-	RenderPass() = default;
+	RenderPass(IntrusivePtr<VulkanContext>& context);
 	~RenderPass();
 
 	std::vector<VkClearValue>& GetClearValue();
-	VkRenderPass GetRenderPass();
+	VkRenderPass& GetRenderPass();
 	std::vector<IntrusivePtr<Pipeline>>& GetPipelines();
 
 	void BuildFrameuffer(VkExtent2D extent);
@@ -30,7 +30,7 @@ private:
 	std::vector<VkAttachmentDescription> attachments;
 	std::vector<IntrusivePtr<Pipeline>> pipelines;
 
-	VkDescriptorPool descriptorPool;
+	VkDescriptorPool descriptorPool = nullptr;
 	std::vector<VkDescriptorSet> descriptorSets;
 
 	std::vector<VkClearValue> clearValues;

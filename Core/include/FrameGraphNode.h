@@ -7,7 +7,7 @@ class FrameGraph;
 class FrameGraphNode : public IntrusiveCounter<FrameGraphNode>
 {
 public:
-	FrameGraphNode(IntrusivePtr<FrameGraph> fg = nullptr);
+	FrameGraphNode(FrameGraph* fg = nullptr);
 	virtual ~FrameGraphNode() {};
 
 	// retain the node so it won't be culled
@@ -16,7 +16,7 @@ public:
 
 protected:
 	friend class FrameGraph;
-	IntrusivePtr<FrameGraph> fg;
+	FrameGraph* fg;
 	std::string name;
 
 	uint32_t refCount = 0;

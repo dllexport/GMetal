@@ -108,7 +108,8 @@ IntrusivePtr<RenderPass> BuildDefaultRenderPass(IntrusivePtr<VulkanContext> cont
     clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
     clearValues[1].depthStencil = { 1.0f, 0 };
 
-    auto renderPass = RenderPassBuilder(context)
+    return nullptr;
+    /*auto renderPass = RenderPassBuilder(context)
         .SetAttachments(attachments)
         .SetClearValues(clearValues)
         .AddSubPass(VK_PIPELINE_BIND_POINT_GRAPHICS, { {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL} }, { 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL })
@@ -128,7 +129,7 @@ IntrusivePtr<RenderPass> BuildDefaultRenderPass(IntrusivePtr<VulkanContext> cont
 
     DescriptorPoolBuilder(context).SetRenderPass(renderPass).AddPipelines(pipeline).Build();
 
-    return renderPass;
+    return renderPass;*/
 }
 
 int main()
@@ -155,14 +156,11 @@ int main()
     auto view1 = gmetal::make_intrusive<IView>(swapChain1);
     // auto view2 = gmetal::make_intrusive<IView>(swapChain2);
 
-    auto defaultRenderPass = BuildDefaultRenderPass(vkContext, swapChain1);
-
     auto drawable = gmetal::make_intrusive<Drawable>();
     drawable->SetVertexArray({});
     drawable->SetVertexTopology(Drawable::DrawTopology::TRIANGLE_LIST, Drawable::UINT16);
 
-    auto renderer = gmetal::make_intrusive<Renderer>();
-    renderer->SetDefaultRenderPass(defaultRenderPass);
+    auto renderer = gmetal::make_intrusive<Renderer>(vkContext);
     renderer->AddView(view1);
     renderer->AddDrawable(drawable, view1);
 
