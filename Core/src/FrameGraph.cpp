@@ -121,6 +121,7 @@ void FrameGraph::BuildRenderPass()
 
 	std::vector<VkAttachmentDescription> vads;
 	std::unordered_map<IntrusivePtr<FrameGraphNode>, uint32_t> vadsMap;
+	std::unordered_map<IntrusivePtr<FrameGraphNode>, uint32_t> passColorAttachmentMap;
 
 	for (uint32_t i = 0; i < imageNodes.size(); i++)
 	{
@@ -165,6 +166,8 @@ void FrameGraph::BuildRenderPass()
 			}
 			colorRefs.push_back({ vadsMap[imageResourceNode], VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
 		}
+
+		passColorAttachmentMap[renderPassNode] = colorRefs.size();
 
 		// record input refs
 		for (uint32_t j = 0; j < ins.size(); j++)
@@ -211,7 +214,11 @@ void FrameGraph::BuildRenderPass()
 	for (int i = 0; i < passNodes.size(); i++)
 	{
 		auto rpNode = static_cast<RenderPassNode*>(passNodes[i].get());
-		auto pipeline = rpNode->pipelineSetupFn(renderPass, i);
+		if (!rpNode->pipelineSetupFn) {
+			throw std::runtime_error("pipelineSetupFn required");
+		}
+
+		auto pipeline = rpNode->pipelineSetupFn(renderPass, i, passColorAttachmentMap[rpNode]);
 		renderPass->GetPipelines().push_back(pipeline);
 	}
 

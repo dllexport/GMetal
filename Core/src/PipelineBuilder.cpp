@@ -57,6 +57,12 @@ PipelineBuilder& PipelineBuilder::SetRasterizer(VkPolygonMode polygonMode, VkCul
 	return *this;
 }
 
+PipelineBuilder& PipelineBuilder::SetBlendAttachmentState(std::vector<VkPipelineColorBlendAttachmentState>&& states)
+{
+	this->pcbas = states;
+	return *this;
+}
+
 PipelineBuilder& PipelineBuilder::AddDescriptorSetLayoutBinding(std::vector<VkDescriptorSetLayoutBinding>&& bindings)
 {
 	this->descriptorSetLayoutBindings.push_back(bindings);
@@ -174,20 +180,11 @@ void PipelineBuilder::BuildMultisampleState()
 
 void PipelineBuilder::BuildColorBlendAttachmentState()
 {
-	pcbas.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-	pcbas.blendEnable = VK_FALSE;
-	pcbas.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-	pcbas.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
-	pcbas.colorBlendOp = VK_BLEND_OP_ADD;
-	pcbas.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-	pcbas.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-	pcbas.alphaBlendOp = VK_BLEND_OP_ADD;
-
 	pcbsci.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 	pcbsci.logicOpEnable = VK_FALSE;
 	pcbsci.logicOp = VK_LOGIC_OP_COPY;
-	pcbsci.attachmentCount = 1;
-	pcbsci.pAttachments = &pcbas;
+	pcbsci.attachmentCount = pcbas.size();
+	pcbsci.pAttachments = pcbas.data();
 	pcbsci.blendConstants[0] = 0.0f;
 	pcbsci.blendConstants[1] = 0.0f;
 	pcbsci.blendConstants[2] = 0.0f;
