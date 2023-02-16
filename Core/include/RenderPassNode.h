@@ -23,7 +23,7 @@ public:
 
 private:
 	friend class FrameGraph;
-	std::function<IntrusivePtr<Pipeline>(IntrusivePtr<RenderPass>& renderPass, uint32_t subpassIndex, uint32_t colorAttachmentCount)> pipelineSetupFn;
+	std::function<IntrusivePtr<Pipeline>(PipelineBuilder& builder)> pipelineSetupFn;
 
 public:
 	void Setup(decltype(pipelineSetupFn)&& fn) { pipelineSetupFn = fn; }

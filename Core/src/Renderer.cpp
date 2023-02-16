@@ -50,22 +50,11 @@ void Renderer::StartFrame()
 		auto fg = gmetal::make_intrusive<FrameGraph>(this->context);
 
 		auto gbufferPass = fg->CreatePass<RenderPassNode>("gbuffer pass");
-		gbufferPass->Setup([&](IntrusivePtr<RenderPass>& renderPass, uint32_t subpassIndex, uint32_t colorAttachmentCount) {
-			// td: BlendAttachmentState info cache in ImageResourceNode
-			std::vector<VkPipelineColorBlendAttachmentState> vpcbas(colorAttachmentCount);
-			for (auto& vpcba : vpcbas) {
-				vpcba = {};
-				vpcba.colorWriteMask = 0xf;
-				vpcba.blendEnable = VK_FALSE;
-			};
-
-			return PipelineBuilder(context)
-			.SetRenderPass(renderPass, subpassIndex)
-			.SetVertexShader("shaders/test.vert.spv")
+		gbufferPass->Setup([&](PipelineBuilder& builder) {
+			return builder.SetVertexShader("shaders/test.vert.spv")
 			.SetFragmentShader("shaders/test.frag.spv")
 			.SetVertexInput({ VertexComponent::Position, VertexComponent::Color })
 			.SetRasterizer(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
-			.SetBlendAttachmentState(std::move(vpcbas))
 			.AddDescriptorSetLayoutBinding({ PipelineBuilder::BuildDescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0) })
 			.Build();
 		});

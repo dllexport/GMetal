@@ -19,7 +19,9 @@ public:
 	void SetStencilStoreOp(VkAttachmentStoreOp op);
 	void SetInitLayout(VkImageLayout layout);
 	void SetFinalLayout(VkImageLayout layout);
-
+	void SetClearValue(VkClearValue clearValue);
+	void SetColorBlendAttachmentState(VkPipelineColorBlendAttachmentState state);
+	
 	void SetDepthStencil();
 	void SetSwapChainImage();
 
@@ -30,4 +32,6 @@ private:
 	VkAttachmentDescription vad;
 	bool isDepthStencil = false;
 	bool isSwapChainImage = false;
+	VkClearValue clearValue;
+	VkPipelineColorBlendAttachmentState blendState = { .blendEnable = VK_FALSE };
 };

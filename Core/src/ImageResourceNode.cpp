@@ -59,6 +59,15 @@ void ImageResourceNode::AttachmentDescriptionOverride(VkAttachmentDescription de
 	this->vad = description;
 }
 
+void ImageResourceNode::SetClearValue(VkClearValue clearValue)
+{
+	this->clearValue = clearValue;
+}
+
+void ImageResourceNode::SetColorBlendAttachmentState(VkPipelineColorBlendAttachmentState state)
+{
+	this->blendState = state;
+}
 
 void ImageResourceNode::SetDepthStencil()
 {
