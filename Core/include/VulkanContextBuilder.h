@@ -43,6 +43,7 @@ private:
     void BuildInstance();
     void BuildPhysicalDevice();
     void BuildLogicalDevice();
+    void BuildVMA();
 };
 
 

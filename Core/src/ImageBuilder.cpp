@@ -1,7 +1,8 @@
 #include <ImageBuilder.h>
 
-ImageBuilder::ImageBuilder(IntrusivePtr<VulkanContext>& context)
+ImageBuilder::ImageBuilder(IntrusivePtr<VulkanContext>& context) : context(context)
 {
+	vici = {};
 	// SetBasic
 	vici.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	vici.imageType = VK_IMAGE_TYPE_2D;
@@ -9,7 +10,6 @@ ImageBuilder::ImageBuilder(IntrusivePtr<VulkanContext>& context)
 	vici.extent.height = 0;
 	vici.extent.depth = 0;
 	vici.format = VK_FORMAT_UNDEFINED;
-	vici.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 	vici.mipLevels = 1;
 	vici.arrayLayers = 1;
@@ -19,6 +19,12 @@ ImageBuilder::ImageBuilder(IntrusivePtr<VulkanContext>& context)
 	vici.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	vici.queueFamilyIndexCount = 0;
 	vici.pQueueFamilyIndices = nullptr;
+
+
+	vaci = {};
+	vaci.usage = VMA_MEMORY_USAGE_AUTO;
+	vaci.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+	vaci.priority = 1.0f;
 }
 
 ImageBuilder& ImageBuilder::SetBasic(VkImageType type, VkFormat format, VkExtent3D extent, VkImageUsageFlags usage)
@@ -62,16 +68,15 @@ ImageBuilder& ImageBuilder::SetSample(VkSampleCountFlagBits sampleFlag)
 
 ImageBuilder& ImageBuilder::SetAllocationInfo(VmaMemoryUsage usage, VmaAllocationCreateFlags flags)
 {
-	vaci = {};
-	vaci.usage = VMA_MEMORY_USAGE_AUTO;
-	vaci.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+	vaci.usage = usage;
+	vaci.flags = flags;
 	vaci.priority = 1.0f;
 	return *this;
 }
 
 IntrusivePtr<Image> ImageBuilder::Build()
 {
-	auto image = gmetal::make_intrusive<Image>();
+	auto image = gmetal::make_intrusive<Image>(context);
 	vmaCreateImage(context->GetVmaAllocator(), &vici, &vaci, &image->image, &image->allocation, nullptr);
 	image->vici = this->vici;
 	return image;

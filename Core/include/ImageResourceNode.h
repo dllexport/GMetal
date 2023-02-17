@@ -32,6 +32,6 @@ private:
 	VkAttachmentDescription vad;
 	bool isDepthStencil = false;
 	bool isSwapChainImage = false;
-	VkClearValue clearValue;
+	VkClearValue clearValue = {};
 	VkPipelineColorBlendAttachmentState blendState = { .blendEnable = VK_FALSE };
 };

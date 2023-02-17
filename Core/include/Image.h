@@ -6,20 +6,24 @@
 
 #include <IntrusivePtr.h>
 #include <ImageView.h>
+#include <VulkanContext.h>
 
 class Image : public IntrusiveCounter<Image>
 {
 public:
-	void Assign(VkImage image, VkFormat format);
+	Image(IntrusivePtr<VulkanContext>& context);
+	~Image();
 
+	void Assign(VkImage image, VkFormat format);
 	VkFormat GetFormat();
+
 private:
 	friend class ImageBuilder;
 	friend class ImageViewBuilder;
-
-	VkImage image;
-	VmaAllocation allocation;
-	VkImageCreateInfo vici;
-
+	IntrusivePtr<VulkanContext> context;
+	VkImage image = nullptr;
+	VmaAllocation allocation = nullptr;
+	VkImageCreateInfo vici = {};
+	bool externResource = false;
 	std::unordered_set<IntrusivePtr<ImageView>> imageViews;
 };

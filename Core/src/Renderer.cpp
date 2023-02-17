@@ -43,24 +43,23 @@ void Renderer::StartFrame()
 {
 	for (auto& [view, renderMap] : views)
 	{
-		auto swapChainImage = view->GetSwapChain()->GetImages()[frameNumber % 2];
-		auto surfaceFormat = view->GetSwapChain()->GetSurfaceFormat();
-		auto depthFormat = view->GetSwapChain()->DepthStencilFormat();
+		auto swapChain = view->GetSwapChain();
+		auto swapChainExtent = swapChain->Extent();
+		auto swapChainImage = swapChain->GetImages()[frameNumber % 2];
+		auto surfaceFormat = swapChain->GetSurfaceFormat();
+		auto depthFormat = swapChain->DepthStencilFormat();
 
 		auto fg = gmetal::make_intrusive<FrameGraph>(this->context);
 
 		auto gbufferPass = fg->CreatePass<RenderPassNode>("gbuffer pass");
 		gbufferPass->Setup([&](PipelineBuilder& builder) {
-			return builder.SetVertexShader("shaders/test.vert.spv")
-			.SetFragmentShader("shaders/test.frag.spv")
-			.SetVertexInput({ VertexComponent::Position, VertexComponent::Color })
+			return builder.SetVertexShader("shaders/gbuffer.vert.spv")
+			.SetFragmentShader("shaders/gbuffer.frag.spv")
+			.SetVertexInput({ VertexComponent::Position, VertexComponent::Color, VertexComponent::Normal })
 			.SetRasterizer(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
 			.AddDescriptorSetLayoutBinding({ PipelineBuilder::BuildDescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0) })
 			.Build();
 		});
-
-		auto rrPass = fg->CreateNode<RenderPassNode>("rr pass");
-		auto rr = fg->CreateNode<ImageResourceNode>("rr node", swapChainImage);
 
 		auto depth = fg->CreateImage<ImageResourceNode>("depth", depthFormat);
 		depth->SetDepthStencil();
@@ -68,11 +67,23 @@ void Renderer::StartFrame()
 		auto color = fg->CreateImage<ImageResourceNode>("color", swapChainImage);
 		color->SetSwapChainImage();
 
-		auto fb = fg->CreateImage<ImageResourceNode>("fb", surfaceFormat.format);
 		auto normal = fg->CreateImage<ImageResourceNode>("normal", surfaceFormat.format);
 		auto albedo = fg->CreateImage<ImageResourceNode>("albedo", surfaceFormat.format);
 		auto position = fg->CreateImage<ImageResourceNode>("position", surfaceFormat.format);
+
 		auto mergePass = fg->CreatePass<RenderPassNode>("merge pass");
+		mergePass->Setup([&](PipelineBuilder& builder) {
+			std::vector<VkDescriptorSetLayoutBinding> passBindings;
+			passBindings.push_back(PipelineBuilder::BuildDescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT, 0));
+			passBindings.push_back(PipelineBuilder::BuildDescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT, 1));
+			passBindings.push_back(PipelineBuilder::BuildDescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT, 2));
+
+			return builder.SetVertexShader("shaders/merge.vert.spv")
+				.SetFragmentShader("shaders/merge.frag.spv")
+				.SetRasterizer(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
+				.AddDescriptorSetLayoutBinding(std::move(passBindings))
+				.Build();
+		});
 
 		gbufferPass->Write(normal);
 		gbufferPass->Write(albedo);
@@ -84,15 +95,12 @@ void Renderer::StartFrame()
 		mergePass->Read(position);
 		mergePass->Read(depth);
 
-		mergePass->Write(fb);
-
-		auto finalPass = fg->CreatePass<RenderPassNode>("final pass");
-		finalPass->Read(fb);
-		finalPass->Read(depth);
-		finalPass->Write(color);
+		mergePass->Write(color);
 		color->Retain();
 
 		fg->Compile();
+		fg->ResolveResource(swapChainExtent);
+		fg->Execute();
 	}
 }
 

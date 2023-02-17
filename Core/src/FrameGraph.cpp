@@ -7,6 +7,7 @@
 #include <RenderPassNode.h>
 #include <RenderPassBuilder.h>
 #include <PipelineBuilder.h>
+#include <ImageBuilder.h>
 
 FrameGraph::FrameGraph(IntrusivePtr<VulkanContext>& context) : context(context)
 {
@@ -116,30 +117,22 @@ void FrameGraph::BuildRenderPass()
 {
 	auto renderPassBuilder = RenderPassBuilder(context);
 
-	std::vector<VkClearValue> clearValues;
-	clearValues.resize(imageNodes.size());
-
 	std::vector<VkAttachmentDescription> vads;
+	// imageNode -> index
 	std::unordered_map<IntrusivePtr<FrameGraphNode>, uint32_t> vadsMap;
 	std::unordered_map<IntrusivePtr<FrameGraphNode>, std::vector<VkPipelineColorBlendAttachmentState>> passColorAttachmentBlendStates;
+
+	std::vector<VkClearValue> attachmentClearValues;
 
 	for (uint32_t i = 0; i < imageNodes.size(); i++)
 	{
 		auto imageResourceNode = static_cast<ImageResourceNode*>(imageNodes[i].get());
 		vadsMap[imageResourceNode] = i;
 		vads.push_back(imageResourceNode->vad);
-		if (imageResourceNode->isDepthStencil) {
-			VkClearValue cv = {};
-			cv.depthStencil = { 1.0f, 0 };
-			clearValues[i] = cv;
-		}
-		else {
-			VkClearValue cv = {};
-			cv.color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-			clearValues[i] = cv;
-		}
+		attachmentClearValues.push_back(imageResourceNode->clearValue);
 	}
 
+	renderPassBuilder.SetClearValues(attachmentClearValues);
 	renderPassBuilder.SetAttachments(vads);
 
 	for (uint32_t i = 0; i < passNodes.size(); i++)
@@ -212,6 +205,7 @@ void FrameGraph::BuildRenderPass()
 
 	this->renderPass = renderPassBuilder.Build();
 
+	// build pipelines
 	for (int i = 0; i < passNodes.size(); i++)
 	{
 		auto rpNode = static_cast<RenderPassNode*>(passNodes[i].get());
@@ -232,5 +226,32 @@ void FrameGraph::Compile()
 {
 	Cull();
 	TopoSort();
-	BuildRenderPass();
+	ResolveResource();
+}
+
+void FrameGraph::ResolveResource(VkExtent2D extent)
+{
+	for (auto& imageNode : imageNodes)
+	{
+		auto imageResourceNode = static_cast<ImageResourceNode*>(imageNode.get());
+		if (imageResourceNode->image) {
+			continue;
+		}
+
+		VkImageUsageFlags imageUsage = VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+		if (imageResourceNode->isDepthStencil)
+		{
+			imageUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		}
+
+		imageResourceNode->image = ImageBuilder(context)
+			.SetBasic(VK_IMAGE_TYPE_2D, imageResourceNode->vad.format, VkExtent3D{ extent.height, extent.width, 1 }, imageUsage)
+			.Build();
+	}
+}
+
+
+void FrameGraph::Execute()
+{
+
 }

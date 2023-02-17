@@ -142,7 +142,7 @@ void SwapChainBuilder::BuildSwapChain()
 	newSwapChain->swapChainImageViews.resize(imageCount);
 	for (int i = 0; i < imageCount; i++)
 	{
-		auto image = gmetal::make_intrusive<Image>();
+		auto image = gmetal::make_intrusive<Image>(context);
 		image->Assign(images[i], newSwapChain->format.format);
 		auto imageView = ImageViewBuilder(context).SetBasic(image, VK_IMAGE_VIEW_TYPE_2D, newSwapChain->format.format, VK_IMAGE_ASPECT_COLOR_BIT).Build();
 		newSwapChain->swapChainImages[i] = image;

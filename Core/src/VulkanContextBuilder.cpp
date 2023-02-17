@@ -44,6 +44,7 @@ boost::intrusive_ptr<VulkanContext> VulkanContextBuilder::Build()
     BuildInstance();
     BuildPhysicalDevice();
     BuildLogicalDevice();
+    BuildVMA();
     return this->context;
 }
 
@@ -327,4 +328,15 @@ void VulkanContextBuilder::BuildLogicalDevice()
     context->queueContextMap[VK_QUEUE_GRAPHICS_BIT] = {graphicsQueue, selectedQueues[VK_QUEUE_GRAPHICS_BIT]};
     context->queueContextMap[VK_QUEUE_COMPUTE_BIT] = {computeQueue, selectedQueues[VK_QUEUE_COMPUTE_BIT]};
     context->queueContextMap[VK_QUEUE_TRANSFER_BIT] = {transferQueue, selectedQueues[VK_QUEUE_TRANSFER_BIT]};
+}
+
+void VulkanContextBuilder::BuildVMA()
+{
+    VmaAllocatorCreateInfo allocatorCreateInfo = {};
+    allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_2;
+    allocatorCreateInfo.physicalDevice = context->physicalDevice;
+    allocatorCreateInfo.device = context->logicalDevice;
+    allocatorCreateInfo.instance = context->instance;
+
+    vmaCreateAllocator(&allocatorCreateInfo, &context->vmaAllocator);
 }

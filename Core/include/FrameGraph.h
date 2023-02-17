@@ -48,6 +48,16 @@ public:
 
 	void Compile();
 
+	// alloc image for imageResourceNode
+	// alloc attachment image views
+	// create VkFramebuffer
+	// create descriptor pool
+	// alloc descriptor sets for each pass
+	void ResolveResource(VkExtent2D extent);
+
+	// bind resources && drawcall
+	void Execute();
+
 private:
 	IntrusivePtr<VulkanContext>& context;
 	std::vector<IntrusivePtr<FrameGraphNode>> imageNodes;

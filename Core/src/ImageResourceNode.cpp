@@ -21,7 +21,7 @@ ImageResourceNode::ImageResourceNode(IntrusivePtr<Image>& image)
 
 ImageResourceNode::~ImageResourceNode()
 {
-
+	spdlog::info("ImageResourceNode die");
 }
 
 void ImageResourceNode::SetLoadOp(VkAttachmentLoadOp op)
@@ -78,7 +78,9 @@ void ImageResourceNode::SetDepthStencil()
 	vad.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	vad.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	vad.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
 	this->isDepthStencil = true;
+	this->clearValue.depthStencil = { 1.0f, 0 };
 }
 
 void ImageResourceNode::SetSwapChainImage()
