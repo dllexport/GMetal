@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vulkan/vulkan.h>
 #include <FrameGraph.h>
 #include <FrameGraphNode.h>
 #include <Image.h>
@@ -25,6 +26,8 @@ public:
 	void SetDepthStencil();
 	void SetSwapChainImage();
 
+	void Resolve(VkExtent3D extend);
+	
 private:
 	friend class FrameGraph;
 	IntrusivePtr<Image> image;

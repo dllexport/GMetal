@@ -9,7 +9,8 @@ class DescriptorPoolBuilder
 {
 public:
 	DescriptorPoolBuilder(IntrusivePtr<VulkanContext>& context);
-	DescriptorPoolBuilder& AddPipelines(IntrusivePtr<Pipeline>& pipeline);
+	DescriptorPoolBuilder& AddPipeline(IntrusivePtr<Pipeline>& pipeline);
+	DescriptorPoolBuilder& SetPipelines(std::vector<IntrusivePtr<Pipeline>> pipelines);
 	DescriptorPoolBuilder& SetRenderPass(IntrusivePtr<RenderPass>& renderPass);
 	void Build();
 private:

@@ -4,9 +4,8 @@
 #include <ImageBuilder.h>
 #include <FrameGraph.h>
 
-RenderPass::RenderPass(IntrusivePtr<VulkanContext>& context) : context(context)
+RenderPass::RenderPass(IntrusivePtr<VulkanContext> &context) : context(context)
 {
-
 }
 
 RenderPass::~RenderPass()
@@ -15,29 +14,34 @@ RenderPass::~RenderPass()
 	vkDestroyRenderPass(context->GetVkDevice(), this->renderPass, nullptr);
 }
 
-std::vector<VkClearValue>& RenderPass::GetClearValue()
+std::vector<VkClearValue> &RenderPass::GetClearValue()
 {
 	return this->clearValues;
 }
 
-VkRenderPass& RenderPass::GetRenderPass()
+VkRenderPass &RenderPass::GetRenderPass()
 {
 	return this->renderPass;
 }
 
-std::vector<IntrusivePtr<Pipeline>>& RenderPass::GetPipelines()
+std::vector<IntrusivePtr<Pipeline>> &RenderPass::GetPipelines()
 {
 	return this->pipelines;
 }
 
-void RenderPass::BuildFrameuffer(VkExtent2D extent)
+VkDescriptorPool RenderPass::GetDescriptorPool()
 {
+	return this->descriptorPool;
 }
 
-void RenderPass::Draw(VkCommandBuffer& commandBuffer, std::vector<IntrusivePtr<Drawable>>& drawables)
+void RenderPass::BuildFrameuffer(VkExtent2D extent)
 {
-	for (auto& pipeline : pipelines)
-	{
+	
+}
 
+void RenderPass::Draw(VkCommandBuffer &commandBuffer, std::vector<IntrusivePtr<Drawable>> &drawables)
+{
+	for (auto &pipeline : pipelines)
+	{
 	}
 }

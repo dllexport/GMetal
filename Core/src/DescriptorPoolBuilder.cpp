@@ -6,9 +6,15 @@ DescriptorPoolBuilder::DescriptorPoolBuilder(IntrusivePtr<VulkanContext>& contex
 
 }
 
-DescriptorPoolBuilder& DescriptorPoolBuilder::AddPipelines(IntrusivePtr<Pipeline>& pipeline)
+DescriptorPoolBuilder& DescriptorPoolBuilder::AddPipeline(IntrusivePtr<Pipeline>& pipeline)
 {
 	this->pipelines.push_back(pipeline);
+	return *this;
+}
+
+DescriptorPoolBuilder& DescriptorPoolBuilder::SetPipelines(std::vector<IntrusivePtr<Pipeline>> pipelines)
+{
+	this->pipelines = pipelines;
 	return *this;
 }
 
@@ -20,9 +26,6 @@ DescriptorPoolBuilder& DescriptorPoolBuilder::SetRenderPass(IntrusivePtr<RenderP
 
 void DescriptorPoolBuilder::BuildDescriptorPool()
 {
-	// copy pipelines
-	this->renderPass->pipelines = pipelines;
-
 	std::unordered_map<VkDescriptorType, uint32_t> descriptorCounterMap;
 	for (int i = 0; i < pipelines.size(); i++)
 	{

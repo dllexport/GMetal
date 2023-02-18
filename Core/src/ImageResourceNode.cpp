@@ -1,100 +1,83 @@
-#include <ImageResourceNode.h>
 #include <FrameGraph.h>
+#include <ImageBuilder.h>
+#include <ImageResourceNode.h>
 
-ImageResourceNode::ImageResourceNode(VkFormat format)
-{
-	vad.flags = 0;
-	vad.format = format;
-	vad.samples = VK_SAMPLE_COUNT_1_BIT;
-	vad.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	vad.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	vad.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	vad.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	vad.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	vad.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+ImageResourceNode::ImageResourceNode(VkFormat format) {
+    vad.flags = 0;
+    vad.format = format;
+    vad.samples = VK_SAMPLE_COUNT_1_BIT;
+    vad.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    vad.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    vad.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    vad.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    vad.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    vad.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 }
 
-ImageResourceNode::ImageResourceNode(IntrusivePtr<Image>& image)
-{
-	this->image = image;
+ImageResourceNode::ImageResourceNode(IntrusivePtr<Image>& image) { this->image = image; }
+
+ImageResourceNode::~ImageResourceNode() { spdlog::info("ImageResourceNode die"); }
+
+void ImageResourceNode::SetLoadOp(VkAttachmentLoadOp op) { vad.loadOp = op; }
+
+void ImageResourceNode::SetStoreOp(VkAttachmentStoreOp op) { vad.storeOp = op; }
+
+void ImageResourceNode::SetStencilLoadOp(VkAttachmentLoadOp op) { vad.stencilLoadOp = op; }
+
+void ImageResourceNode::SetStencilStoreOp(VkAttachmentStoreOp op) { vad.stencilStoreOp = op; }
+
+void ImageResourceNode::SetInitLayout(VkImageLayout layout) { vad.initialLayout = layout; }
+
+void ImageResourceNode::SetFinalLayout(VkImageLayout layout) { vad.finalLayout = layout; }
+
+void ImageResourceNode::AttachmentDescriptionOverride(VkAttachmentDescription description) {
+    this->vad = description;
 }
 
-ImageResourceNode::~ImageResourceNode()
-{
-	spdlog::info("ImageResourceNode die");
+void ImageResourceNode::SetClearValue(VkClearValue clearValue) { this->clearValue = clearValue; }
+
+void ImageResourceNode::SetColorBlendAttachmentState(VkPipelineColorBlendAttachmentState state) {
+    this->blendState = state;
 }
 
-void ImageResourceNode::SetLoadOp(VkAttachmentLoadOp op)
-{
-	vad.loadOp = op;
+void ImageResourceNode::SetDepthStencil() {
+    vad.flags = 0;
+    vad.samples = VK_SAMPLE_COUNT_1_BIT;
+    vad.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    vad.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    vad.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    vad.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    vad.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    this->isDepthStencil = true;
+    this->clearValue.depthStencil = {1.0f, 0};
 }
 
-void ImageResourceNode::SetStoreOp(VkAttachmentStoreOp op)
-{
-	vad.storeOp = op;
+void ImageResourceNode::SetSwapChainImage() {
+    if (image) {
+        vad.format = image->GetFormat();
+    }
+    vad.flags = 0;
+    vad.samples = VK_SAMPLE_COUNT_1_BIT;
+    vad.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    vad.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    vad.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    vad.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    vad.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    vad.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    this->isSwapChainImage = true;
 }
 
-void ImageResourceNode::SetStencilLoadOp(VkAttachmentLoadOp op)
-{
-	vad.stencilLoadOp = op;
-}
+void ImageResourceNode::Resolve(VkExtent3D extent) {
+    VkImageUsageFlags imageUsage = VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+    if (isDepthStencil) {
+        imageUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    }
 
-void ImageResourceNode::SetStencilStoreOp(VkAttachmentStoreOp op)
-{
-	vad.stencilStoreOp = op;
-}
-
-void ImageResourceNode::SetInitLayout(VkImageLayout layout)
-{
-	vad.initialLayout = layout;
-}
-
-void ImageResourceNode::SetFinalLayout(VkImageLayout layout)
-{
-	vad.finalLayout = layout;
-}
-
-void ImageResourceNode::AttachmentDescriptionOverride(VkAttachmentDescription description)
-{
-	this->vad = description;
-}
-
-void ImageResourceNode::SetClearValue(VkClearValue clearValue)
-{
-	this->clearValue = clearValue;
-}
-
-void ImageResourceNode::SetColorBlendAttachmentState(VkPipelineColorBlendAttachmentState state)
-{
-	this->blendState = state;
-}
-
-void ImageResourceNode::SetDepthStencil()
-{
-	vad.flags = 0;
-	vad.samples = VK_SAMPLE_COUNT_1_BIT;
-	vad.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	vad.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	vad.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	vad.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	vad.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-	this->isDepthStencil = true;
-	this->clearValue.depthStencil = { 1.0f, 0 };
-}
-
-void ImageResourceNode::SetSwapChainImage()
-{
-	if (image) {
-		vad.format = image->GetFormat();
-	}
-	vad.flags = 0;
-	vad.samples = VK_SAMPLE_COUNT_1_BIT;
-	vad.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	vad.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	vad.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	vad.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	vad.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	vad.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-	this->isSwapChainImage = true;
+    image = ImageBuilder(this->fg->Context())
+                    .SetBasic(VK_IMAGE_TYPE_2D,
+                              vad.format,
+                              VkExtent3D{extent.height, extent.width, 1},
+                              imageUsage)
+                    .Build();
 }

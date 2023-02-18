@@ -18,6 +18,7 @@ public:
 	};
 
 private:
+	friend class FrameGraph;
 	friend class PipelineBuilder;
 	friend class RenderPassBuilder;
 	friend class DescriptorPoolBuilder;
@@ -28,6 +29,8 @@ private:
 	VkPipeline pipeline;
 	std::vector<VkShaderModule> shaderModules;
 	VkPipelineLayout pipelineLayout;
+	// pipeline could have multiple descriptor set
 	std::vector<std::vector<VkDescriptorSetLayoutBinding>> descriptorSetLayoutBindings;
 	std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
+	VkDescriptorSet descriptorSet;
 };

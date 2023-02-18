@@ -15,7 +15,7 @@ public:
 	std::vector<VkClearValue>& GetClearValue();
 	VkRenderPass& GetRenderPass();
 	std::vector<IntrusivePtr<Pipeline>>& GetPipelines();
-
+	VkDescriptorPool GetDescriptorPool();
 	void BuildFrameuffer(VkExtent2D extent);
 	void Draw(VkCommandBuffer& commandBuffer, std::vector<IntrusivePtr<Drawable>>& drawables);
 
@@ -30,6 +30,7 @@ private:
 	std::vector<VkAttachmentDescription> attachments;
 	std::vector<IntrusivePtr<Pipeline>> pipelines;
 
+	// assign from DescriptorPoolBuilder
 	VkDescriptorPool descriptorPool = nullptr;
 	std::vector<VkDescriptorSet> descriptorSets;
 

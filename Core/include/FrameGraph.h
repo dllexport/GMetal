@@ -58,6 +58,8 @@ public:
 	// bind resources && drawcall
 	void Execute();
 
+	IntrusivePtr<VulkanContext>& Context();
+	
 private:
 	IntrusivePtr<VulkanContext>& context;
 	std::vector<IntrusivePtr<FrameGraphNode>> imageNodes;
