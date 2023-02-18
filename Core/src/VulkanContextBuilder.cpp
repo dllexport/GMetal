@@ -68,6 +68,11 @@ VulkanContextBuilder &VulkanContextBuilder::SetInstanceLayers(std::vector<const 
 VulkanContextBuilder &VulkanContextBuilder::SetDeviceExtensions(std::vector<const char *> &&extensions)
 {
     this->deviceExtensions = extensions;
+
+#ifdef __APPLE__
+    this->deviceExtensions.push_back("VK_KHR_portability_subset");
+#endif
+
     return *this;
 }
 
@@ -104,11 +109,16 @@ void VulkanContextBuilder::BuildInstance()
     ai.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     ai.pEngineName = "GMetalCore";
     ai.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    ai.apiVersion = VK_API_VERSION_1_3;
+    ai.apiVersion = VK_API_VERSION_1_2;
 
     VkInstanceCreateInfo ici = {};
     ici.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     ici.pApplicationInfo = &ai;
+
+#ifdef __APPLE__
+    this->instanceExtensions.push_back("VK_KHR_portability_enumeration");
+    ici.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#endif
 
     ici.enabledExtensionCount = instanceExtensions.size();
     ici.ppEnabledExtensionNames = instanceExtensions.data();
@@ -182,6 +192,12 @@ int VulkanContextBuilder::DefaultPhysicalDeviceSelector(std::vector<VkPhysicalDe
             return i;
         }
     }
+
+    if (!devices.empty())
+    {
+        return 0;
+    }
+    
     return -1;
 }
 

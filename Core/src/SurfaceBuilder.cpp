@@ -1,3 +1,5 @@
+#ifdef _WIN32
+
 #include <SurfaceBuilder.h>
 #include <stdexcept>
 
@@ -35,3 +37,5 @@ VkSurfaceKHR SurfaceBuilder::Build()
 	}
 	return surface;
 }
+
+#endif

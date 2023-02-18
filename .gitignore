@@ -2,3 +2,5 @@
 .vs
 out
 cmake-build-debug-visual-studio
+3rd
+build

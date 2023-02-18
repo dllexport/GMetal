@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.24)
 project(GMetalCore)
 
 set(CMAKE_CXX_STANDARD 20)
-set(GLSL_VALIDATOR "$ENV{VULKAN_SDK}/Bin/glslangValidator.exe")
+set(GLSL_VALIDATOR "${VULKAN_SDK}/Bin/glslangValidator")
 
 find_package(Boost REQUIRED COMPONENTS system)
 
@@ -39,14 +39,28 @@ add_dependencies(GMetalCore Shaders)
 
 target_include_directories(GMetalCore PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
-        $ENV{VULKAN_SDK}/Include
+        ${VULKAN_SDK}/Include
         ${Boost_INCLUDE_DIRS}
 )
 
 target_link_libraries(GMetalCore PRIVATE
-        $ENV{VULKAN_SDK}/Lib/vulkan-1.lib
         spdlog
         ${Boost_LIBRARIES}
         GMetalUtils
 )
+
+if (WIN32)
+  target_link_libraries(GMetalCore PUBLIC
+          ${VULKAN_SDK}/Lib/vulkan-1.lib
+  )
+else()
+  target_include_directories(GMetalCore PUBLIC
+          ${VULKAN_SDK}/Include
+          ${Boost_INCLUDE_DIRS}
+  )
+  target_link_libraries(GMetalCore PUBLIC
+          ${VULKAN_SDK}/Lib/libvulkan.dylib
+          glfw
+  )
+endif()
 

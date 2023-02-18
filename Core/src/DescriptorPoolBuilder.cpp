@@ -37,7 +37,7 @@ void DescriptorPoolBuilder::BuildDescriptorPool()
 	std::vector<VkDescriptorPoolSize> poolSizes;
 	for (auto& [k, v] : descriptorCounterMap)
 	{
-		poolSizes.emplace_back(k, v);
+		poolSizes.push_back({k, v});
 	}
 
 	VkDescriptorPoolCreateInfo descriptorPoolInfo{};

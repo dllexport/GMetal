@@ -4,7 +4,7 @@
 #pragma once
 
 #include <unordered_map>
-
+#include <vector>
 #include <vulkan/vulkan.h>
 #include <vma/vk_mem_alloc.h>
 #include <IntrusivePtr.h>

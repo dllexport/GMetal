@@ -226,7 +226,7 @@ void FrameGraph::Compile()
 {
 	Cull();
 	TopoSort();
-	ResolveResource();
+	BuildRenderPass();
 }
 
 void FrameGraph::ResolveResource(VkExtent2D extent)

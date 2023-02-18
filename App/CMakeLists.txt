@@ -3,7 +3,7 @@ project(GMetalApp)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(GMetalApp main.cpp)
+add_executable(GMetalApp main.cpp mainMacOS.cpp)
 
 target_link_libraries(GMetalApp GMetalCore spdlog)
 

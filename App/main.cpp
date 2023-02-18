@@ -1,3 +1,4 @@
+#ifdef _WIN32
 //
 // Created by Mario on 2023/1/18.
 //
@@ -168,3 +169,5 @@ int main()
 
     return 0;
 }
+
+#endif

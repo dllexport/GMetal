@@ -4,6 +4,7 @@
 #include <FrameGraphNode.h>
 #include <IntrusivePtr.h>
 #include <Pipeline.h>
+#include <PipelineBuilder.h>
 
 class RenderPassNode : public FrameGraphNode
 {
