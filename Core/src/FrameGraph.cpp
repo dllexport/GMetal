@@ -221,26 +221,91 @@ void FrameGraph::Compile() {
     BuildRenderPass();
 }
 
-void FrameGraph::ResolveResource(VkExtent2D extent) {
-    // alloc image resource
-	for (auto& imageNode : imageNodes) {
-        auto imageResourceNode = static_cast<ImageResourceNode*>(imageNode.get());
-        if (imageResourceNode->image) {
-            continue;
-        }
-        imageResourceNode->Resolve({extent.height, extent.width, 1});
+class ResourceDescriptorResolveVisitor : public ResourceNodeVisitor {
+public:
+    ResourceDescriptorResolveVisitor(Pipeline* pipeline, VkExtent2D swapChainExtent, RenderPassNode::SlotOp op)
+            : pipeline(pipeline), swapChainExtent(swapChainExtent), slotOp(op) {}
+
+    virtual void Visit(ImageResourceNode* node) {
+        node->Resolve({swapChainExtent.height, swapChainExtent.width, 1});
+
+        std::vector<VkWriteDescriptorSet> writeDescriptorSets;
+
+        VkDescriptorImageInfo descriptorImageInfo = {};
+        descriptorImageInfo.sampler = nullptr;
+        descriptorImageInfo.imageView = node->GetImageView()->GetView();
+        descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+        VkWriteDescriptorSet writeDescriptorSet = {};
+        writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeDescriptorSet.dstSet = pipeline->GetDescriptorSet();
+        writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+        writeDescriptorSet.dstBinding = slotOp.index;
+        writeDescriptorSet.pImageInfo = &descriptorImageInfo;
+        writeDescriptorSet.descriptorCount = 1;
+
+        writeDescriptorSets.push_back(writeDescriptorSet);
+
+        vkUpdateDescriptorSets(pipeline->Context()->GetVkDevice(), static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
     }
 
-	for (auto pipeline : renderPass->GetPipelines()) 
-	{
-		// alloc descriptor set and do binding
-		VkDescriptorSetAllocateInfo descriptorSetAllocateInfo {};
-		descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		descriptorSetAllocateInfo.descriptorPool = renderPass->GetDescriptorPool();
-		descriptorSetAllocateInfo.pSetLayouts = pipeline->descriptorSetLayouts.data();
-		descriptorSetAllocateInfo.descriptorSetCount = pipeline->descriptorSetLayouts.size();
-		vkAllocateDescriptorSets(context->GetVkDevice(), &descriptorSetAllocateInfo, &pipeline->descriptorSet);
-	}
+    virtual void Visit(UniformResourceNode* node) {}
+
+private:
+    VkExtent2D swapChainExtent;
+    RenderPassNode::SlotOp slotOp;
+    Pipeline* pipeline;
+};
+
+void FrameGraph::ResolveResource(VkExtent2D extent) {
+    for (int i = 0; i < passNodes.size(); i++) {
+        auto passNode = static_cast<RenderPassNode*>(passNodes[i].get());
+        auto& pipeline = renderPass->GetPipelines()[i];
+
+        VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {};
+        descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        descriptorSetAllocateInfo.descriptorPool = renderPass->GetDescriptorPool();
+        descriptorSetAllocateInfo.pSetLayouts = pipeline->descriptorSetLayouts.data();
+        descriptorSetAllocateInfo.descriptorSetCount = pipeline->descriptorSetLayouts.size();
+        VkDescriptorSet set = nullptr;
+        auto result = vkAllocateDescriptorSets(
+                context->GetVkDevice(), &descriptorSetAllocateInfo, &set);
+
+        // pipeline->descriptorSetLayoutBindings[0][0].descriptorType
+
+        for (auto& [inputNode, slotOp] : passNode->slotIndexMap) {
+            auto resourceNode = static_cast<ResourceNode*>(inputNode.get());
+
+            ResourceDescriptorResolveVisitor visitor(pipeline.get(), extent, slotOp);
+            resourceNode->Accept(&visitor);
+
+            // VkDescriptorImageInfo descriptorImageInfo {};
+            // descriptorImageInfo.sampler = nullptr;
+            // descriptorImageInfo.imageView = imageResourceNode->imageView->GetView();
+            // descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+            // VkWriteDescriptorSet writeDescriptorSet {};
+            // writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            // writeDescriptorSet.dstSet = pipeline->descriptorSet;
+            // writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+            // writeDescriptorSet.dstBinding = slot;
+            // writeDescriptorSet.pBufferInfo = bufferInfo;
+            // writeDescriptorSet.descriptorCount = 1;
+
+            // std::vector< VkDescriptorImageInfo> descriptorImageInfos = {
+            // 	vks::initializers::descriptorImageInfo(VK_NULL_HANDLE, attachments.position.view,
+            // VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
+            // 	vks::initializers::descriptorImageInfo(VK_NULL_HANDLE, attachments.normal.view,
+            // VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
+            // 	vks::initializers::descriptorImageInfo(VK_NULL_HANDLE, attachments.albedo.view,
+            // VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
+            // };
+        }
+    }
+
+    for (auto pipeline : renderPass->GetPipelines()) {
+        // alloc descriptor set and do binding
+    }
 }
 
 void FrameGraph::Execute() {}

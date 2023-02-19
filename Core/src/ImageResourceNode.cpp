@@ -1,6 +1,7 @@
 #include <FrameGraph.h>
 #include <ImageBuilder.h>
 #include <ImageResourceNode.h>
+#include <ImageViewBuilder.h>
 
 ImageResourceNode::ImageResourceNode(VkFormat format) {
     vad.flags = 0;
@@ -68,7 +69,12 @@ void ImageResourceNode::SetSwapChainImage() {
     this->isSwapChainImage = true;
 }
 
+void ImageResourceNode::Accept(ResourceNodeVisitor* visitor) { visitor->Visit(this); }
+
 void ImageResourceNode::Resolve(VkExtent3D extent) {
+    if (image) {
+        return;
+    }
     VkImageUsageFlags imageUsage = VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
     if (isDepthStencil) {
         imageUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -80,4 +86,15 @@ void ImageResourceNode::Resolve(VkExtent3D extent) {
                               VkExtent3D{extent.height, extent.width, 1},
                               imageUsage)
                     .Build();
+
+    imageView = ImageViewBuilder(fg->Context())
+                        .SetBasic(image,
+                                  VK_IMAGE_VIEW_TYPE_2D,
+                                  image->GetFormat(),
+                                  VK_IMAGE_ASPECT_COLOR_BIT)
+                        .Build();
 }
+
+IntrusivePtr<Image>& ImageResourceNode::GetImage() { return image; }
+
+IntrusivePtr<ImageView>& ImageResourceNode::GetImageView() { return imageView; }

@@ -98,9 +98,9 @@ void Renderer::StartFrame() {
         gbufferPass->Write(position);
         gbufferPass->Write(depth);
 
-        mergePass->Read(albedo);
-        mergePass->Read(normal);
-        mergePass->Read(position);
+        mergePass->Read(albedo, 0);
+        mergePass->Read(normal, 1);
+        mergePass->Read(position, 2);
         mergePass->Read(depth);
 
         mergePass->Write(color);

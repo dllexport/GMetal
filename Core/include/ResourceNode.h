@@ -2,12 +2,12 @@
 
 #include <FrameGraph.h>
 #include <FrameGraphNode.h>
+#include <ResourceNodeVisitor.h>
 
 class ResourceNode : public FrameGraphNode
 {
 public:
 	ResourceNode() {}
 	virtual ~ResourceNode() {}
-private:
-
+	virtual void Accept(ResourceNodeVisitor* visitor) = 0;
 };

@@ -3,10 +3,12 @@
 #include <vulkan/vulkan.h>
 #include <FrameGraph.h>
 #include <FrameGraphNode.h>
+#include <ResourceNode.h>
 #include <Image.h>
 #include <ImageView.h>
+#include <ResourceNodeVisitor.h>
 
-class ImageResourceNode : public FrameGraphNode
+class ImageResourceNode : public ResourceNode
 {
 public:
 	ImageResourceNode(VkFormat format);
@@ -26,7 +28,12 @@ public:
 	void SetDepthStencil();
 	void SetSwapChainImage();
 
-	void Resolve(VkExtent3D extend);
+	virtual void Accept(ResourceNodeVisitor* visitor);
+
+	virtual void Resolve(VkExtent3D extend);
+	
+	IntrusivePtr<Image>& GetImage();
+	IntrusivePtr<ImageView>& GetImageView();
 	
 private:
 	friend class FrameGraph;
