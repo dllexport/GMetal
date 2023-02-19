@@ -266,6 +266,7 @@ IntrusivePtr<Pipeline> PipelineBuilder::Build()
 
 	pipeline->context = context;
 	pipeline->pipelineLayout = pipelineLayout;
+    pipeline->descriptorSetLayoutBindings = descriptorSetLayoutBindings;
 	pipeline->pipeline = graphicsPipeline;
 	return pipeline;
 }

@@ -29,9 +29,10 @@ public:
 private:
     friend class FrameGraph;
     std::function<IntrusivePtr<Pipeline>(PipelineBuilder& builder)> pipelineSetupFn;
-
+    std::function<void()> pipelineExecuteFn;
     std::unordered_map<IntrusivePtr<FrameGraphNode>, SlotOp> slotIndexMap;
 
 public:
     void Setup(decltype(pipelineSetupFn)&& fn) { pipelineSetupFn = fn; }
+    void Execute(decltype(pipelineExecuteFn)&& fn) { pipelineExecuteFn = fn; }
 };

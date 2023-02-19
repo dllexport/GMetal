@@ -44,7 +44,7 @@ void Renderer::StartFrame() {
         auto surfaceFormat = swapChain->GetSurfaceFormat();
         auto depthFormat = swapChain->DepthStencilFormat();
 
-        auto fg = gmetal::make_intrusive<FrameGraph>(this->context);
+        auto fg = gmetal::make_intrusive<FrameGraph>(this->context, swapChain);
 
         auto gbufferPass = fg->CreatePass<RenderPassNode>("gbuffer pass");
         gbufferPass->Setup([&](PipelineBuilder& builder) {
@@ -62,6 +62,10 @@ void Renderer::StartFrame() {
                                     VK_SHADER_STAGE_VERTEX_BIT,
                                     0)})
                     .Build();
+        });
+
+        gbufferPass->Execute([&]() {
+                
         });
 
         auto depth = fg->CreateImage<ImageResourceNode>("depth", depthFormat);
@@ -107,7 +111,7 @@ void Renderer::StartFrame() {
         color->Retain();
 
         fg->Compile();
-        fg->ResolveResource(swapChainExtent);
+        fg->ResolveResource();
         fg->Execute();
     }
 }

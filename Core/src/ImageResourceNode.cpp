@@ -17,7 +17,7 @@ ImageResourceNode::ImageResourceNode(VkFormat format) {
 
 ImageResourceNode::ImageResourceNode(IntrusivePtr<Image>& image) { this->image = image; }
 
-ImageResourceNode::~ImageResourceNode() { spdlog::info("ImageResourceNode die"); }
+ImageResourceNode::~ImageResourceNode() { }
 
 void ImageResourceNode::SetLoadOp(VkAttachmentLoadOp op) { vad.loadOp = op; }
 

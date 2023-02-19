@@ -8,13 +8,14 @@
 #include <spdlog/spdlog.h>
 
 #include <VulkanContext.h>
+#include <SwapChain.h>
 #include <RenderPass.h>
 #include <FrameGraphNode.h>
 
 class FrameGraph : public IntrusiveCounter<FrameGraph>
 {
 public:
-	FrameGraph(IntrusivePtr<VulkanContext>& context);
+    FrameGraph(IntrusivePtr<VulkanContext>& context, IntrusivePtr<SwapChain> swapChain);
 	~FrameGraph();
 
 	template<class T, class ...Args>
@@ -53,7 +54,7 @@ public:
 	// create VkFramebuffer
 	// create descriptor pool
 	// alloc descriptor sets for each pass
-	void ResolveResource(VkExtent2D extent);
+	void ResolveResource();
 
 	// bind resources && drawcall
 	void Execute();
@@ -62,6 +63,9 @@ public:
 	
 private:
 	IntrusivePtr<VulkanContext>& context;
+
+	IntrusivePtr<SwapChain> swapChain;
+
 	std::vector<IntrusivePtr<FrameGraphNode>> imageNodes;
 	std::vector<IntrusivePtr<FrameGraphNode>> passNodes;
 	std::unordered_map<IntrusivePtr<FrameGraphNode>, std::vector<IntrusivePtr<FrameGraphNode>>> nodesInMap;

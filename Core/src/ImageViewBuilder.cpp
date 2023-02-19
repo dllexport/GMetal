@@ -35,7 +35,7 @@ ImageViewBuilder& ImageViewBuilder::SetSubresourceRange(VkImageSubresourceRange 
 
 IntrusivePtr<ImageView> ImageViewBuilder::Build()
 {
-	auto imageView = gmetal::make_intrusive<ImageView>();
+	auto imageView = gmetal::make_intrusive<ImageView>(context);
 	vkCreateImageView(context->GetVkDevice(), &vivci, nullptr, &imageView->imageView);
 	imageView->vivci = this->vivci;
 	this->image->imageViews.insert(imageView);

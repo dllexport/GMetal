@@ -10,9 +10,10 @@
 #include <RenderPassBuilder.h>
 #include <RenderPassNode.h>
 
-FrameGraph::FrameGraph(IntrusivePtr<VulkanContext>& context) : context(context) {}
+FrameGraph::FrameGraph(IntrusivePtr<VulkanContext>& context, IntrusivePtr<SwapChain> swapChain)
+        : context(context), swapChain(swapChain) {}
 
-FrameGraph::~FrameGraph() { spdlog::info("die"); }
+FrameGraph::~FrameGraph() { }
 
 void FrameGraph::Link(IntrusivePtr<FrameGraphNode>&& from, IntrusivePtr<FrameGraphNode>&& to) {
     nodesInMap[to].push_back(from);
@@ -246,7 +247,11 @@ public:
 
         writeDescriptorSets.push_back(writeDescriptorSet);
 
-        vkUpdateDescriptorSets(pipeline->Context()->GetVkDevice(), static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+        vkUpdateDescriptorSets(pipeline->Context()->GetVkDevice(),
+                               static_cast<uint32_t>(writeDescriptorSets.size()),
+                               writeDescriptorSets.data(),
+                               0,
+                               nullptr);
     }
 
     virtual void Visit(UniformResourceNode* node) {}
@@ -257,7 +262,7 @@ private:
     Pipeline* pipeline;
 };
 
-void FrameGraph::ResolveResource(VkExtent2D extent) {
+void FrameGraph::ResolveResource() {
     for (int i = 0; i < passNodes.size(); i++) {
         auto passNode = static_cast<RenderPassNode*>(passNodes[i].get());
         auto& pipeline = renderPass->GetPipelines()[i];
@@ -267,47 +272,34 @@ void FrameGraph::ResolveResource(VkExtent2D extent) {
         descriptorSetAllocateInfo.descriptorPool = renderPass->GetDescriptorPool();
         descriptorSetAllocateInfo.pSetLayouts = pipeline->descriptorSetLayouts.data();
         descriptorSetAllocateInfo.descriptorSetCount = pipeline->descriptorSetLayouts.size();
-        VkDescriptorSet set = nullptr;
         auto result = vkAllocateDescriptorSets(
-                context->GetVkDevice(), &descriptorSetAllocateInfo, &set);
-
-        // pipeline->descriptorSetLayoutBindings[0][0].descriptorType
+                context->GetVkDevice(), &descriptorSetAllocateInfo, &pipeline->descriptorSet);
 
         for (auto& [inputNode, slotOp] : passNode->slotIndexMap) {
             auto resourceNode = static_cast<ResourceNode*>(inputNode.get());
-
-            ResourceDescriptorResolveVisitor visitor(pipeline.get(), extent, slotOp);
+            ResourceDescriptorResolveVisitor visitor(pipeline.get(), swapChain->Extent(), slotOp);
             resourceNode->Accept(&visitor);
-
-            // VkDescriptorImageInfo descriptorImageInfo {};
-            // descriptorImageInfo.sampler = nullptr;
-            // descriptorImageInfo.imageView = imageResourceNode->imageView->GetView();
-            // descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-            // VkWriteDescriptorSet writeDescriptorSet {};
-            // writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            // writeDescriptorSet.dstSet = pipeline->descriptorSet;
-            // writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-            // writeDescriptorSet.dstBinding = slot;
-            // writeDescriptorSet.pBufferInfo = bufferInfo;
-            // writeDescriptorSet.descriptorCount = 1;
-
-            // std::vector< VkDescriptorImageInfo> descriptorImageInfos = {
-            // 	vks::initializers::descriptorImageInfo(VK_NULL_HANDLE, attachments.position.view,
-            // VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
-            // 	vks::initializers::descriptorImageInfo(VK_NULL_HANDLE, attachments.normal.view,
-            // VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
-            // 	vks::initializers::descriptorImageInfo(VK_NULL_HANDLE, attachments.albedo.view,
-            // VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
-            // };
         }
-    }
-
-    for (auto pipeline : renderPass->GetPipelines()) {
-        // alloc descriptor set and do binding
     }
 }
 
-void FrameGraph::Execute() {}
+void FrameGraph::Execute()
+{
+    VkCommandBufferBeginInfo cmdBufferBeginInfo{};
+    cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    
+    auto swapChainExtent = swapChain->Extent();
+    auto& clearValues = renderPass->GetClearValue();
+
+	VkRenderPassBeginInfo renderPassBeginInfo = {};
+    renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassBeginInfo.renderPass = renderPass->GetRenderPass();
+    renderPassBeginInfo.renderArea.offset.x = 0;
+    renderPassBeginInfo.renderArea.offset.y = 0;
+    renderPassBeginInfo.renderArea.extent = swapChainExtent;
+    renderPassBeginInfo.clearValueCount = clearValues.size();
+    renderPassBeginInfo.pClearValues = clearValues.data();
+
+}
 
 IntrusivePtr<VulkanContext>& FrameGraph::Context() { return context; }
