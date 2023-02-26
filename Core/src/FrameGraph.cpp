@@ -230,6 +230,8 @@ void FrameGraph::Compile() {
     BuildRenderPass();
 }
 
+// resolve resource in node 
+// update related descriptor set in pipeline
 class ResourceDescriptorResolveVisitor : public ResourceNodeVisitor {
 public:
     ResourceDescriptorResolveVisitor(Pipeline* pipeline, VkExtent3D swapChainExtent, uint32_t binding)
@@ -261,7 +263,6 @@ public:
                                0,
                                nullptr);
     }
-
 
     virtual void Visit(DepthStencilImageResourceNode* node) {
         node->Resolve({swapChainExtent.height, swapChainExtent.width, 1});
