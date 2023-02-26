@@ -18,6 +18,8 @@ public:
     FrameGraph(IntrusivePtr<VulkanContext>& context, IntrusivePtr<SwapChain> swapChain);
 	~FrameGraph();
 
+    IntrusivePtr<VulkanContext>& Context();
+
 	template<class T, class ...Args>
 	IntrusivePtr<T> CreateNode(std::string name, Args&& ... args)
 	{
@@ -29,13 +31,12 @@ public:
 		return p;
 	}
 
-	template<class T, class ...Args>
-	IntrusivePtr<T> CreateImage(std::string name, Args&& ... args)
-	{
-		auto image = CreateNode<T>(name, std::forward<Args>(args)...);
-		imageNodes.push_back(image);
-		return image;
-	}
+	template <class T, class... Args>
+    IntrusivePtr<T> CreateAttachment(std::string name, Args&&... args) {
+        auto image = CreateNode<T>(name, std::forward<Args>(args)...);
+        attachmentNodes.push_back(image);
+        return image;
+    }
 
 	template<class T, class ...Args>
 	IntrusivePtr<T> CreatePass(std::string name, Args&& ... args)
@@ -59,15 +60,16 @@ public:
 	// bind resources && drawcall
 	void Execute();
 
-	IntrusivePtr<VulkanContext>& Context();
 	
 private:
 	IntrusivePtr<VulkanContext>& context;
 
 	IntrusivePtr<SwapChain> swapChain;
 
-	std::vector<IntrusivePtr<FrameGraphNode>> imageNodes;
-	std::vector<IntrusivePtr<FrameGraphNode>> passNodes;
+    std::vector<IntrusivePtr<FrameGraphNode>> attachmentNodes;
+    std::vector<IntrusivePtr<FrameGraphNode>> passNodes;
+
+	// for toposort
 	std::unordered_map<IntrusivePtr<FrameGraphNode>, std::vector<IntrusivePtr<FrameGraphNode>>> nodesInMap;
 	std::unordered_map<IntrusivePtr<FrameGraphNode>, std::vector<IntrusivePtr<FrameGraphNode>>> nodesOutMap;
 
@@ -89,7 +91,7 @@ private:
 			spdlog::info("{} count: {}", n->name.c_str(), n->refCount);
 		}
 
-		for (auto n : imageNodes) {
+		for (auto n : attachmentNodes) {
 			spdlog::info("{} count: {}", n->name.c_str(), n->refCount);
 		}
 	}

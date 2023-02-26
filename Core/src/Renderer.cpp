@@ -6,6 +6,8 @@
 #include <Renderer.h>
 #include <ResourceNode.h>
 #include <spdlog/spdlog.h>
+#include <DepthStencilImageResourceNode.h>
+#include <UniformResourceNode.h>
 
 Renderer::Renderer(IntrusivePtr<VulkanContext>& context) : context(context) {}
 
@@ -45,8 +47,11 @@ void Renderer::StartFrame() {
         auto depthFormat = swapChain->DepthStencilFormat();
 
         auto fg = gmetal::make_intrusive<FrameGraph>(this->context, swapChain);
+        auto uniform = fg->CreateNode<UniformResourceNode>("uniform");
 
         auto gbufferPass = fg->CreatePass<RenderPassNode>("gbuffer pass");
+        gbufferPass->Read(uniform, 0);
+
         gbufferPass->Setup([&](PipelineBuilder& builder) {
             return builder.SetVertexShader("shaders/gbuffer.vert.spv")
                     .SetFragmentShader("shaders/gbuffer.frag.spv")
@@ -65,18 +70,18 @@ void Renderer::StartFrame() {
         });
 
         gbufferPass->Execute([&]() {
-                
+            
         });
 
-        auto depth = fg->CreateImage<ImageResourceNode>("depth", depthFormat);
-        depth->SetDepthStencil();
 
-        auto color = fg->CreateImage<ImageResourceNode>("color", swapChainImage);
+        auto depth = fg->CreateAttachment<DepthStencilImageResourceNode>("depth", depthFormat);
+
+        auto normal = fg->CreateAttachment<ImageResourceNode>("normal", surfaceFormat.format);
+        auto albedo = fg->CreateAttachment<ImageResourceNode>("albedo", surfaceFormat.format);
+        auto position = fg->CreateAttachment<ImageResourceNode>("position", surfaceFormat.format);
+
+        auto color = fg->CreateAttachment<ImageResourceNode>("color", swapChainImage);
         color->SetSwapChainImage();
-
-        auto normal = fg->CreateImage<ImageResourceNode>("normal", surfaceFormat.format);
-        auto albedo = fg->CreateImage<ImageResourceNode>("albedo", surfaceFormat.format);
-        auto position = fg->CreateImage<ImageResourceNode>("position", surfaceFormat.format);
 
         auto mergePass = fg->CreatePass<RenderPassNode>("merge pass");
         mergePass->Setup([&](PipelineBuilder& builder) {
@@ -97,17 +102,18 @@ void Renderer::StartFrame() {
                     .Build();
         });
 
-        gbufferPass->Write(normal);
-        gbufferPass->Write(albedo);
-        gbufferPass->Write(position);
-        gbufferPass->Write(depth);
+        gbufferPass->DepthStencilReadWrite(depth);
+        gbufferPass->Write(position, 0);
+        gbufferPass->Write(normal, 1);
+        gbufferPass->Write(albedo, 2);
 
-        mergePass->Read(albedo, 0);
+        mergePass->Read(position, 0);
         mergePass->Read(normal, 1);
-        mergePass->Read(position, 2);
-        mergePass->Read(depth);
+        mergePass->Read(albedo, 2);
+        mergePass->DepthStencilReadWrite(depth);
 
-        mergePass->Write(color);
+        mergePass->Write(color, 0);
+
         color->Retain();
 
         fg->Compile();

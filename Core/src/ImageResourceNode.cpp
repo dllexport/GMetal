@@ -15,7 +15,9 @@ ImageResourceNode::ImageResourceNode(VkFormat format) {
     vad.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 }
 
-ImageResourceNode::ImageResourceNode(IntrusivePtr<Image>& image) { this->image = image; }
+ImageResourceNode::ImageResourceNode(IntrusivePtr<Image>& image) {
+    this->image = image;
+}
 
 ImageResourceNode::~ImageResourceNode() { }
 
@@ -72,27 +74,32 @@ void ImageResourceNode::SetSwapChainImage() {
 void ImageResourceNode::Accept(ResourceNodeVisitor* visitor) { visitor->Visit(this); }
 
 void ImageResourceNode::Resolve(VkExtent3D extent) {
-    if (image) {
-        return;
-    }
-    VkImageUsageFlags imageUsage = VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
-    if (isDepthStencil) {
-        imageUsage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    }
+    if (!image) {
+        VkImageUsageFlags imageUsage =
+                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+        if (isDepthStencil) {
+            imageUsage =
+                    VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        }
 
-    image = ImageBuilder(this->fg->Context())
-                    .SetBasic(VK_IMAGE_TYPE_2D,
-                              vad.format,
-                              VkExtent3D{extent.height, extent.width, 1},
-                              imageUsage)
-                    .Build();
-
-    imageView = ImageViewBuilder(fg->Context())
-                        .SetBasic(image,
-                                  VK_IMAGE_VIEW_TYPE_2D,
-                                  image->GetFormat(),
-                                  VK_IMAGE_ASPECT_COLOR_BIT)
+        image = ImageBuilder(this->fg->Context())
+                        .SetBasic(VK_IMAGE_TYPE_2D,
+                                  vad.format,
+                                  VkExtent3D{extent.height, extent.width, 1},
+                                  imageUsage)
                         .Build();
+    }
+    
+    if (!imageView) {
+        VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+        if (isDepthStencil) {
+            aspect = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
+
+        imageView = ImageViewBuilder(fg->Context())
+                            .SetBasic(image, VK_IMAGE_VIEW_TYPE_2D, image->GetFormat(), aspect)
+                            .Build();
+    }
 }
 
 IntrusivePtr<Image>& ImageResourceNode::GetImage() { return image; }

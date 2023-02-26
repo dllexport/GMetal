@@ -10,6 +10,9 @@ RenderPass::RenderPass(IntrusivePtr<VulkanContext> &context) : context(context)
 
 RenderPass::~RenderPass()
 {
+    for (auto frameBuffer : this->frameBuffers) {
+        vkDestroyFramebuffer(context->GetVkDevice(), frameBuffer, nullptr);
+    }
 	vkDestroyDescriptorPool(context->GetVkDevice(), this->descriptorPool, nullptr);
 	vkDestroyRenderPass(context->GetVkDevice(), this->renderPass, nullptr);
 }
@@ -34,9 +37,19 @@ VkDescriptorPool RenderPass::GetDescriptorPool()
 	return this->descriptorPool;
 }
 
-void RenderPass::BuildFrameuffer(VkExtent2D extent)
-{
-	
+void RenderPass::BuildFrameuffer(std::vector<VkImageView> attachments, VkExtent2D extent) {
+    VkFramebufferCreateInfo frameBufferCreateInfo = {};
+    frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    frameBufferCreateInfo.renderPass = renderPass;
+    frameBufferCreateInfo.attachmentCount = attachments.size();
+    frameBufferCreateInfo.pAttachments = attachments.data();
+    frameBufferCreateInfo.width = extent.width;
+    frameBufferCreateInfo.height = extent.height;
+    frameBufferCreateInfo.layers = 1;
+
+	VkFramebuffer frameBuffer;
+    vkCreateFramebuffer(context->GetVkDevice(), &frameBufferCreateInfo, nullptr, &frameBuffer);
+    this->frameBuffers.push_back(frameBuffer);
 }
 
 void RenderPass::Draw(VkCommandBuffer &commandBuffer, std::vector<IntrusivePtr<Drawable>> &drawables)

@@ -9,6 +9,8 @@
 #include <PipelineBuilder.h>
 #include <RenderPassBuilder.h>
 #include <RenderPassNode.h>
+#include <DepthStencilImageResourceNode.h>
+#include <UniformResourceNode.h>
 
 FrameGraph::FrameGraph(IntrusivePtr<VulkanContext>& context, IntrusivePtr<SwapChain> swapChain)
         : context(context), swapChain(swapChain) {}
@@ -21,8 +23,12 @@ void FrameGraph::Link(IntrusivePtr<FrameGraphNode>&& from, IntrusivePtr<FrameGra
     from->refCount++;
 }
 
+void Add(IntrusivePtr<FrameGraphNode>&& node) {
+
+}
+
 void FrameGraph::TopoSort() {
-    levelResult.resize(passNodes.size() + imageNodes.size());
+    levelResult.resize(passNodes.size() + attachmentNodes.size());
 
     // nodes in degree counter map
     std::unordered_map<IntrusivePtr<FrameGraphNode>, uint32_t> counterMap;
@@ -111,8 +117,8 @@ void FrameGraph::BuildRenderPass() {
 
     std::vector<VkClearValue> attachmentClearValues;
 
-    for (uint32_t i = 0; i < imageNodes.size(); i++) {
-        auto imageResourceNode = static_cast<ImageResourceNode*>(imageNodes[i].get());
+    for (uint32_t i = 0; i < attachmentNodes.size(); i++) {
+        auto imageResourceNode = static_cast<ImageResourceNode*>(attachmentNodes[i].get());
         vadsMap[imageResourceNode] = i;
         vads.push_back(imageResourceNode->vad);
         attachmentClearValues.push_back(imageResourceNode->clearValue);
@@ -128,32 +134,33 @@ void FrameGraph::BuildRenderPass() {
         std::vector<VkAttachmentReference> depthRef;
 
         auto renderPassNode = static_cast<RenderPassNode*>(passNodes[i].get());
-        auto& ins = this->nodesInMap[renderPassNode];
-        auto& outs = this->nodesOutMap[renderPassNode];
 
         bool haveSwapChainAttachment = false;
-        // record color refs
-        for (uint32_t j = 0; j < outs.size(); j++) {
-            auto imageResourceNode = static_cast<ImageResourceNode*>(outs[j].get());
-            if (imageResourceNode->isDepthStencil) {
-                depthRef.push_back({vadsMap[imageResourceNode],
-                                    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL});
-                continue;
-            }
+        // record color 
+        for (auto& [node, binding] : renderPassNode->colorImageNodes) {
+            auto imageResourceNode = node->As<ImageResourceNode>();
             if (imageResourceNode->isSwapChainImage) {
                 haveSwapChainAttachment = true;
             }
+
             colorRefs.push_back(
                     {vadsMap[imageResourceNode], VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
             passColorAttachmentBlendStates[renderPassNode].push_back(imageResourceNode->blendState);
         }
 
-        // record input refs
-        for (uint32_t j = 0; j < ins.size(); j++) {
-            auto imageResourceNode = static_cast<ImageResourceNode*>(ins[j].get());
+        // record input
+        for (auto& [node, binding] : renderPassNode->inputImageNodes) {
+            auto imageResourceNode = node->As<ImageResourceNode>();
             inputRefs.push_back(
                     {vadsMap[imageResourceNode], VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
         }
+
+        // record depth stencil
+        if (renderPassNode->depthStencilImageNode) {
+            depthRef.push_back({vadsMap[renderPassNode->depthStencilImageNode],
+                                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL});
+        }
+
         renderPassBuilder.AddSubPass(VK_PIPELINE_BIND_POINT_GRAPHICS,
                                      std::move(colorRefs),
                                      std::move(depthRef),
@@ -174,7 +181,8 @@ void FrameGraph::BuildRenderPass() {
             renderPassBuilder.AddDependency(dep);
         }
 
-        if (ins.size() > 0 && outs.size() > 0) {
+        // handle RAW, WAW, WAR
+        if (renderPassNode->inputImageNodes.size() > 0) {
             dep.srcStageMask |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
             dep.dstStageMask |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
             dep.srcAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
@@ -224,11 +232,11 @@ void FrameGraph::Compile() {
 
 class ResourceDescriptorResolveVisitor : public ResourceNodeVisitor {
 public:
-    ResourceDescriptorResolveVisitor(Pipeline* pipeline, VkExtent2D swapChainExtent, RenderPassNode::SlotOp op)
-            : pipeline(pipeline), swapChainExtent(swapChainExtent), slotOp(op) {}
+    ResourceDescriptorResolveVisitor(Pipeline* pipeline, VkExtent3D swapChainExtent, uint32_t binding)
+            : pipeline(pipeline), swapChainExtent(swapChainExtent), binding(binding) {}
 
     virtual void Visit(ImageResourceNode* node) {
-        node->Resolve({swapChainExtent.height, swapChainExtent.width, 1});
+        node->Resolve(swapChainExtent);
 
         std::vector<VkWriteDescriptorSet> writeDescriptorSets;
 
@@ -241,7 +249,7 @@ public:
         writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSet.dstSet = pipeline->GetDescriptorSet();
         writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-        writeDescriptorSet.dstBinding = slotOp.index;
+        writeDescriptorSet.dstBinding = binding;
         writeDescriptorSet.pImageInfo = &descriptorImageInfo;
         writeDescriptorSet.descriptorCount = 1;
 
@@ -254,33 +262,103 @@ public:
                                nullptr);
     }
 
-    virtual void Visit(UniformResourceNode* node) {}
+
+    virtual void Visit(DepthStencilImageResourceNode* node) {
+        node->Resolve({swapChainExtent.height, swapChainExtent.width, 1});
+    }
+
+    virtual void Visit(UniformResourceNode* node) {
+        // TD: allocate gpu buffer
+        node->Resolve(swapChainExtent);
+
+        std::vector<VkWriteDescriptorSet> writeDescriptorSets;
+
+        VkDescriptorBufferInfo descriptorBufferInfo = {};
+        descriptorBufferInfo.buffer = node->GetGeneralBuffer()->GetBuffer();
+        descriptorBufferInfo.offset = 0;
+        descriptorBufferInfo.range = VK_WHOLE_SIZE;
+
+        VkWriteDescriptorSet writeDescriptorSet = {};
+        writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeDescriptorSet.dstSet = pipeline->GetDescriptorSet();
+        writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        writeDescriptorSet.dstBinding = binding;
+        writeDescriptorSet.pBufferInfo = &descriptorBufferInfo;
+        writeDescriptorSet.descriptorCount = 1;
+
+        writeDescriptorSets.push_back(writeDescriptorSet);
+
+        vkUpdateDescriptorSets(pipeline->Context()->GetVkDevice(),
+                               static_cast<uint32_t>(writeDescriptorSets.size()),
+                               writeDescriptorSets.data(),
+                               0,
+                               nullptr);
+    }
 
 private:
-    VkExtent2D swapChainExtent;
-    RenderPassNode::SlotOp slotOp;
+    VkExtent3D swapChainExtent;
     Pipeline* pipeline;
+    uint32_t binding;
 };
 
 void FrameGraph::ResolveResource() {
     for (int i = 0; i < passNodes.size(); i++) {
         auto passNode = static_cast<RenderPassNode*>(passNodes[i].get());
+        if (i >= renderPass->GetPipelines().size()) {
+            continue;
+        }
         auto& pipeline = renderPass->GetPipelines()[i];
 
+        // allocate pipeline descriptor set
         VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {};
         descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         descriptorSetAllocateInfo.descriptorPool = renderPass->GetDescriptorPool();
         descriptorSetAllocateInfo.pSetLayouts = pipeline->descriptorSetLayouts.data();
         descriptorSetAllocateInfo.descriptorSetCount = pipeline->descriptorSetLayouts.size();
-        auto result = vkAllocateDescriptorSets(
-                context->GetVkDevice(), &descriptorSetAllocateInfo, &pipeline->descriptorSet);
+        vkAllocateDescriptorSets(context->GetVkDevice(), &descriptorSetAllocateInfo, &pipeline->descriptorSet);
 
-        for (auto& [inputNode, slotOp] : passNode->slotIndexMap) {
-            auto resourceNode = static_cast<ResourceNode*>(inputNode.get());
-            ResourceDescriptorResolveVisitor visitor(pipeline.get(), swapChain->Extent(), slotOp);
-            resourceNode->Accept(&visitor);
+        auto swapChainExtent = swapChain->Extent();
+        VkExtent3D extent = {swapChainExtent.height, swapChainExtent.width, 1};
+
+        auto ResolveImageNodeMap = [&](std::unordered_map<IntrusivePtr<FrameGraphNode>, uint32_t>& nodes) {
+            for (auto& [node, binding] : nodes) {
+                ResourceDescriptorResolveVisitor visitor(pipeline.get(), extent, binding);
+                static_cast<ResourceNode*>(node.get())->Accept(&visitor);
+            }
+        };
+
+        // resolve uniform resource
+        ResolveImageNodeMap(passNode->inputUniformNodes);
+
+        // color attachment do not require descriptor
+        for (auto& [colorNode, binding] : passNode->colorImageNodes) {
+            colorNode->As<ImageResourceNode>()->Resolve(extent);
+        }
+
+        // allocate descriptor for input attachments
+        ResolveImageNodeMap(passNode->inputImageNodes);
+
+        if (passNode->resolveImageNode) {
+            passNode->resolveImageNode->As<ImageResourceNode>()->Resolve(extent);
+        }
+
+        if (passNode->depthStencilImageNode) {
+            passNode->depthStencilImageNode->As<ImageResourceNode>()->Resolve(extent);
+        }
+
+        for (auto& preserveNode : passNode->preserveImageNodes) {
+            preserveNode->As<ImageResourceNode>()->Resolve(extent);
         }
     }
+
+    std::vector<VkImageView> attachmentViews;
+    for (auto node : attachmentNodes) {
+        auto imageResourceNode = static_cast<ImageResourceNode*>(node.get());
+        attachmentViews.push_back(imageResourceNode->GetImageView()->GetView());
+    }
+
+    // setup framebuffer
+    renderPass->BuildFrameuffer(attachmentViews, this->swapChain->Extent());
 }
 
 void FrameGraph::Execute()

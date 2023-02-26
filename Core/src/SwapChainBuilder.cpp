@@ -112,7 +112,7 @@ void SwapChainBuilder::BuildSwapChain()
 	sci.imageColorSpace = newSwapChain->format.colorSpace;
 	sci.imageExtent = newSwapChain->capabilities.currentExtent;
 	sci.imageArrayLayers = 1;
-	sci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    sci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 	sci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	sci.preTransform = newSwapChain->capabilities.currentTransform;
 	sci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;

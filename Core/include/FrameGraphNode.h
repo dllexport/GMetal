@@ -14,6 +14,8 @@ public:
 	void Retain() { refCount++; }
 	bool Valid() { return refCount > 0; }
 
+	template <class T> T* As() { return static_cast<T*>(this); }
+
 protected:
 	friend class FrameGraph;
 	FrameGraph* fg;

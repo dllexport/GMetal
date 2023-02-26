@@ -16,7 +16,7 @@ public:
 	VkRenderPass& GetRenderPass();
 	std::vector<IntrusivePtr<Pipeline>>& GetPipelines();
 	VkDescriptorPool GetDescriptorPool();
-	void BuildFrameuffer(VkExtent2D extent);
+    void BuildFrameuffer(std::vector<VkImageView> attachments, VkExtent2D extent);
 	void Draw(VkCommandBuffer& commandBuffer, std::vector<IntrusivePtr<Drawable>>& drawables);
 
 private:
