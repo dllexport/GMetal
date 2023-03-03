@@ -22,7 +22,7 @@ public:
         *(UniformType*)buffer.get() = value;
     }
 
-    template <class UniformType> UniformType& GetValue() 
+    template <class UniformType> UniformType& GetValueAs() 
     { 
         return *(UniformType*)buffer.get();
     }
@@ -40,4 +40,12 @@ private:
     IntrusivePtr<GeneralBuffer> gpuBuffer;
     std::unique_ptr<char[]> buffer;
     uint32_t length = 0;
+};
+
+template<class T> 
+class TypedUniformResourceNode : public UniformResourceNode {
+public:
+    TypedUniformResourceNode(T value) { 
+        this->SetValue(value);
+    }
 };
