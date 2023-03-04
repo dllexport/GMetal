@@ -6,6 +6,12 @@ RenderPassBuilder::RenderPassBuilder(IntrusivePtr<VulkanContext>& context)
 	this->context = context;
 }
 
+RenderPassBuilder& RenderPassBuilder::SetSwapChainSize(uint32_t size) 
+{ 
+	this->swapChainSize = size;
+	return *this;
+}
+
 RenderPassBuilder& RenderPassBuilder::SetAttachments(std::vector<VkAttachmentDescription> attachments)
 {
 	this->attachments = attachments;
@@ -34,6 +40,28 @@ RenderPassBuilder& RenderPassBuilder::AddDependency(VkSubpassDependency dependen
 {
 	this->dependencies.push_back(dependency);
 	return *this;
+}
+
+void RenderPassBuilder::BuildCommandBuffers()
+{
+	// create cmd pool
+	VkCommandPoolCreateInfo cmdPoolInfo = {};
+    cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    cmdPoolInfo.queueFamilyIndex = context->GetQueue(VK_QUEUE_GRAPHICS_BIT).familyIndex;
+    cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    vkCreateCommandPool(context->GetVkDevice(), &cmdPoolInfo, nullptr, &renderPass->commandBufferPool);
+
+	// create cmd buffer
+	VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
+    commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    commandBufferAllocateInfo.commandPool = renderPass->commandBufferPool;
+    commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    commandBufferAllocateInfo.commandBufferCount = swapChainSize;
+
+	renderPass->graphicCommandBuffer.resize(swapChainSize);
+    vkAllocateCommandBuffers(context->GetVkDevice(),
+                             &commandBufferAllocateInfo,
+                             renderPass->graphicCommandBuffer.data());
 }
 
 void RenderPassBuilder::BuildSubPass()
@@ -82,5 +110,6 @@ IntrusivePtr<RenderPass> RenderPassBuilder::Build()
 	this->renderPass->clearValues = this->clearValues;
 	this->renderPass->attachments = this->attachments;
 	BuildSubPass();
+    BuildCommandBuffers();
 	return renderPass;
 }

@@ -26,7 +26,7 @@ public:
         this->fg->Link(node, this);
         if constexpr (std::is_same_v<T, ImageResourceNode>) {
             inputImageNodes[node] = binding;
-        } else if constexpr(std::is_same_v<T, UniformResourceNode>) {
+        } else if constexpr (std::is_base_of_v<UniformResourceNode, T>) {
             inputUniformNodes[node] = binding;
         } else {
             throw std::runtime_error("unknown resource type");

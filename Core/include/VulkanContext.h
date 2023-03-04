@@ -35,6 +35,10 @@ public:
         return vmaAllocator;
     }
 
+    DeviceQueueContext GetQueue(VkQueueFlagBits queueType) { 
+        return queueContextMap[queueType];
+    }
+
 private:
     friend class VulkanContextBuilder;
 

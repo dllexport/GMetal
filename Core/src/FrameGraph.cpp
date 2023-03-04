@@ -199,6 +199,7 @@ void FrameGraph::BuildRenderPass() {
         }
     }
 
+    renderPassBuilder.SetSwapChainSize(swapChain->Size());
     this->renderPass = renderPassBuilder.Build();
 
     // build pipelines
@@ -321,7 +322,7 @@ void FrameGraph::ResolveResource() {
         auto swapChainExtent = swapChain->Extent();
         VkExtent3D extent = {swapChainExtent.height, swapChainExtent.width, 1};
 
-        auto ResolveImageNodeMap = [&](std::unordered_map<IntrusivePtr<FrameGraphNode>, uint32_t>& nodes) {
+        auto ResolveNodeMap = [&](std::unordered_map<IntrusivePtr<FrameGraphNode>, uint32_t>& nodes) {
             for (auto& [node, binding] : nodes) {
                 ResourceDescriptorResolveVisitor visitor(pipeline.get(), extent, binding);
                 static_cast<ResourceNode*>(node.get())->Accept(&visitor);
@@ -329,15 +330,15 @@ void FrameGraph::ResolveResource() {
         };
 
         // resolve uniform resource
-        ResolveImageNodeMap(passNode->inputUniformNodes);
+        ResolveNodeMap(passNode->inputUniformNodes);
+
+        // allocate descriptor for input attachments
+        ResolveNodeMap(passNode->inputImageNodes);
 
         // color attachment do not require descriptor
         for (auto& [colorNode, binding] : passNode->colorImageNodes) {
             colorNode->As<ImageResourceNode>()->Resolve(extent);
         }
-
-        // allocate descriptor for input attachments
-        ResolveImageNodeMap(passNode->inputImageNodes);
 
         if (passNode->resolveImageNode) {
             passNode->resolveImageNode->As<ImageResourceNode>()->Resolve(extent);
@@ -378,6 +379,18 @@ void FrameGraph::Execute()
     renderPassBeginInfo.renderArea.extent = swapChainExtent;
     renderPassBeginInfo.clearValueCount = clearValues.size();
     renderPassBeginInfo.pClearValues = clearValues.data();
+
+    renderPassBeginInfo.framebuffer = renderPass->GetFrameBuffers()[0];
+
+    //vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo)
+
+    //vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+    //VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
+    //vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+
+    //VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
+    //vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
 }
 

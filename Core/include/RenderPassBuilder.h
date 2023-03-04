@@ -8,8 +8,9 @@ class RenderPassBuilder
 {
 public:
 	RenderPassBuilder(IntrusivePtr<VulkanContext>& context);
-	RenderPassBuilder& SetAttachments(std::vector<VkAttachmentDescription> attachments);
-	RenderPassBuilder& SetClearValues(std::vector<VkClearValue> values);
+    RenderPassBuilder& SetSwapChainSize(uint32_t size);
+    RenderPassBuilder& SetAttachments(std::vector<VkAttachmentDescription> attachments);
+    RenderPassBuilder& SetClearValues(std::vector<VkClearValue> values);
 	RenderPassBuilder& AddSubPass(VkPipelineBindPoint bindPoint, std::vector<VkAttachmentReference>&& colorRefs, std::vector<VkAttachmentReference>&& depthStencilRef, std::vector<VkAttachmentReference>&& inputRefs = {}, std::vector<uint32_t>&& reserveRefs = {}, VkAttachmentReference resolveRef = {});
 	RenderPassBuilder& AddDependency(VkSubpassDependency dependency);
 	IntrusivePtr<RenderPass> Build();
@@ -35,5 +36,7 @@ private:
 	std::vector<VkSubpassDescription> subPassDescriptions;
 	std::vector<VkSubpassDependency> dependencies;
 
-	void BuildSubPass();
+	uint32_t swapChainSize = 0;
+    void BuildSubPass();
+    void BuildCommandBuffers();
 };

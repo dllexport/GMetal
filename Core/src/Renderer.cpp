@@ -8,6 +8,7 @@
 #include <spdlog/spdlog.h>
 #include <DepthStencilImageResourceNode.h>
 #include <UniformResourceNode.h>
+#include <glm/glm.hpp>
 
 Renderer::Renderer(IntrusivePtr<VulkanContext>& context) : context(context) {}
 
@@ -47,7 +48,14 @@ void Renderer::StartFrame() {
         auto depthFormat = swapChain->DepthStencilFormat();
 
         auto fg = gmetal::make_intrusive<FrameGraph>(this->context, swapChain);
-        auto uniform = fg->CreateNode<UniformResourceNode>("uniform");
+
+        struct MVPUniform {
+            glm::mat4 model;
+            glm::mat4 view;
+            glm::mat4 projection;
+        };
+
+        auto uniform = fg->CreateNode<TypedUniformResourceNode<MVPUniform>>("uniform", MVPUniform{});
 
         auto gbufferPass = fg->CreatePass<RenderPassNode>("gbuffer pass");
         gbufferPass->Read(uniform, 0);
@@ -72,7 +80,6 @@ void Renderer::StartFrame() {
         gbufferPass->Execute([&]() {
             
         });
-
 
         auto depth = fg->CreateAttachment<DepthStencilImageResourceNode>("depth", depthFormat);
 

@@ -45,6 +45,7 @@ private:
 template<class T> 
 class TypedUniformResourceNode : public UniformResourceNode {
 public:
+    TypedUniformResourceNode() {}
     TypedUniformResourceNode(T value) { 
         this->SetValue(value);
     }

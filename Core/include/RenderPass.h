@@ -17,7 +17,8 @@ public:
 	std::vector<IntrusivePtr<Pipeline>>& GetPipelines();
 	VkDescriptorPool GetDescriptorPool();
     void BuildFrameuffer(std::vector<VkImageView> attachments, VkExtent2D extent);
-	void Draw(VkCommandBuffer& commandBuffer, std::vector<IntrusivePtr<Drawable>>& drawables);
+    void Draw(VkCommandBuffer& commandBuffer, std::vector<IntrusivePtr<Drawable>>& drawables);
+    std::vector<VkFramebuffer>& GetFrameBuffers() { return frameBuffers; }
 
 private:
 	friend class RenderPassBuilder;
@@ -36,4 +37,7 @@ private:
 
 	std::vector<VkClearValue> clearValues;
 	std::vector<VkFramebuffer> frameBuffers;
+
+	VkCommandPool commandBufferPool = {};
+    std::vector<VkCommandBuffer> graphicCommandBuffer;
 };

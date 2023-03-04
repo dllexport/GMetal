@@ -3,6 +3,10 @@
 GeneralBufferBuilder::GeneralBufferBuilder(IntrusivePtr<VulkanContext>& context) : context(context) {
     vbci = {};
     vbci.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+
+    vaci = {};
+    vaci.usage = VMA_MEMORY_USAGE_AUTO;
+    vaci.priority = 1.0f;
 }
 
 GeneralBufferBuilder& GeneralBufferBuilder::SetBasic(VkDeviceSize size, VkBufferUsageFlags usage) {
@@ -30,7 +34,13 @@ GeneralBufferBuilder& GeneralBufferBuilder::SetAllocationInfo(VmaMemoryUsage usa
 
 IntrusivePtr<GeneralBuffer> GeneralBufferBuilder::Build() {
     auto buffer = gmetal::make_intrusive<GeneralBuffer>(context);
-    vmaCreateBuffer(context->GetVmaAllocator(), &vbci, &vaci, &buffer->buffer, &buffer->allocation, nullptr);
-    return buffer;
 
+    vmaCreateBuffer(context->GetVmaAllocator(),
+                    &vbci,
+                    &vaci,
+                    &buffer->buffer,
+                    &buffer->allocation,
+                    nullptr);
+
+    return buffer;
 }

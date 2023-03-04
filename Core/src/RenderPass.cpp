@@ -10,6 +10,8 @@ RenderPass::RenderPass(IntrusivePtr<VulkanContext> &context) : context(context)
 
 RenderPass::~RenderPass()
 {
+    vkDestroyCommandPool(context->GetVkDevice(), this->commandBufferPool, nullptr);
+
     for (auto frameBuffer : this->frameBuffers) {
         vkDestroyFramebuffer(context->GetVkDevice(), frameBuffer, nullptr);
     }
