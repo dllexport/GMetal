@@ -17,7 +17,9 @@ public:
 	ImageBuilder& SetSample(VkSampleCountFlagBits sampleFlag);
 
 	ImageBuilder& SetAllocationInfo(VmaMemoryUsage usage, VmaAllocationCreateFlags flags);
-	IntrusivePtr<Image> Build();
+    IntrusivePtr<Image> Build();
+    std::vector<IntrusivePtr<Image>> BuildVector(uint32_t size);
+
 private:
 	IntrusivePtr<VulkanContext> context;
 	VkImageCreateInfo vici;

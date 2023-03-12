@@ -54,7 +54,7 @@ public:
 private:
     friend class FrameGraph;
     std::function<IntrusivePtr<Pipeline>(PipelineBuilder& builder)> pipelineSetupFn;
-    std::function<void()> pipelineExecuteFn;
+    std::function<void(VkCommandBuffer)> pipelineExecuteFn;
 
     std::unordered_map<IntrusivePtr<FrameGraphNode>, uint32_t> inputUniformNodes;
     std::unordered_map<IntrusivePtr<FrameGraphNode>, uint32_t> inputImageNodes;

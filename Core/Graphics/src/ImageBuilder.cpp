@@ -82,3 +82,20 @@ IntrusivePtr<Image> ImageBuilder::Build()
 	return image;
 }
 
+std::vector<IntrusivePtr<Image>> ImageBuilder::BuildVector(uint32_t size)
+{
+    std::vector<IntrusivePtr<Image>> images;
+	for (int i = 0; i < size; i++)
+	{
+        auto image = gmetal::make_intrusive<Image>(context);
+        vmaCreateImage(context->GetVmaAllocator(),
+                       &vici,
+                       &vaci,
+                       &image->image,
+                       &image->allocation,
+                       nullptr);
+        image->vici = this->vici;
+        images.push_back(image);
+	}
+    return images;
+}

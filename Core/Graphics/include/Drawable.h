@@ -3,6 +3,7 @@
 #include <IntrusivePtr.h>
 #include <vulkan/vulkan.h>
 #include <Vertex.h>
+#include <Material.h>
 
 class Drawable : public IntrusiveCounter<Drawable>
 {
@@ -45,4 +46,6 @@ private:
 
     VkBuffer vertexBuffer;
     VkBuffer indexBuffer;
+
+    IntrusivePtr<Material> material;
 };

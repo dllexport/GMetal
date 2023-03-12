@@ -13,13 +13,18 @@ public:
 
     enum class Type { GRAPHICS, COMPUTE };
 
-    VkDescriptorSet& GetDescriptorSet() { return descriptorSet; }
+    VkDescriptorSet& GetDescriptorSet(uint32_t frameIndex, uint32_t setIndex) {
+        return descriptorSets[frameIndex][setIndex];
+    }
 
     std::vector<std::vector<VkDescriptorSetLayoutBinding>>& GetDescriptorSetLayoutBindings() {
         return descriptorSetLayoutBindings;
     }
 
     std::vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts() { return descriptorSetLayouts; }
+
+    VkPipeline& GetPipeline() { return pipeline; }
+    VkPipelineLayout& GetPipelineLayout() { return pipelineLayout; }
 
     IntrusivePtr<VulkanContext>& Context() { return context; }
 
@@ -38,5 +43,6 @@ private:
     // pipeline could have multiple descriptor set
     std::vector<std::vector<VkDescriptorSetLayoutBinding>> descriptorSetLayoutBindings;
     std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
-    VkDescriptorSet descriptorSet;
+    // descriptorSet per pipeline per frame
+    std::vector<std::vector<VkDescriptorSet>> descriptorSets;
 };

@@ -4,20 +4,21 @@
 
 #pragma once
 
-#include <unordered_set>
-#include <unordered_map>
 #include <IntrusivePtr.h>
 #include <VulkanContext.h>
 #include <SwapChain.h>
 #include <Drawable.h>
 #include <RenderPass.h>
+#include <Renderer.h>
 
 class IView : public IntrusiveUnsafeCounter<IView> {
 public:
-	IView(IntrusivePtr<SwapChain> swapChain);
+    IView(IntrusivePtr<VulkanContext> context);
 	~IView();
 
 	IntrusivePtr<SwapChain> GetSwapChain();
+    void SetSwapChain(IntrusivePtr<SwapChain> swapChain);
+
 private:
 	IntrusivePtr<VulkanContext> context;
 	IntrusivePtr<SwapChain> swapChain;

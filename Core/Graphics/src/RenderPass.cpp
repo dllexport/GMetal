@@ -10,6 +10,11 @@ RenderPass::RenderPass(IntrusivePtr<VulkanContext> &context) : context(context)
 
 RenderPass::~RenderPass()
 {
+    for (int i = 0; i < renderCompleteSemaphores.size(); i++) {
+        vkDestroySemaphore(context->GetVkDevice(), this->renderCompleteSemaphores[i], nullptr);
+        vkDestroySemaphore(context->GetVkDevice(), this->presentCompleteSemaphores[i], nullptr);
+    }
+
     vkDestroyCommandPool(context->GetVkDevice(), this->commandBufferPool, nullptr);
 
     for (auto frameBuffer : this->frameBuffers) {

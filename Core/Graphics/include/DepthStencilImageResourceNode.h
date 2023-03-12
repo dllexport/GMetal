@@ -9,9 +9,6 @@ public:
         this->SetDepthStencil();
     }
 
-    DepthStencilImageResourceNode(IntrusivePtr<Image>& image) : ImageResourceNode(image) {
-        this->SetDepthStencil();
-    }
 
     virtual void Accept(ResourceNodeVisitor* visitor) { visitor->Visit(this); }
 };

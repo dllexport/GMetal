@@ -12,7 +12,7 @@ class ImageResourceNode : public ResourceNode
 {
 public:
 	ImageResourceNode(VkFormat format);
-	ImageResourceNode(IntrusivePtr<Image>& image);
+    ImageResourceNode(std::vector<IntrusivePtr<Image>>& images);
 	virtual ~ImageResourceNode();
 
 	void AttachmentDescriptionOverride(VkAttachmentDescription description);
@@ -30,18 +30,27 @@ public:
 
 	virtual void Accept(ResourceNodeVisitor* visitor);
 
-	virtual void Resolve(VkExtent3D extend);
+	// allocate GPU resource
+	virtual void Resolve(VkExtent3D extend, uint32_t size);
 	
-	IntrusivePtr<Image>& GetImage();
-	IntrusivePtr<ImageView>& GetImageView();
+	IntrusivePtr<Image> GetImage(uint32_t index);
+    IntrusivePtr<ImageView> GetImageView(uint32_t index);
 	
+	std::vector<IntrusivePtr<Image>>& GetImages();
+    std::vector<IntrusivePtr<ImageView>>& GetImageViews();
+
+
 private:
 	friend class FrameGraph;
-	IntrusivePtr<Image> image;
-	IntrusivePtr<ImageView> imageView;
+    std::vector<IntrusivePtr<Image>> images;
+    std::vector<IntrusivePtr<ImageView>> imageViews;
 	VkAttachmentDescription vad;
 	bool isDepthStencil = false;
 	bool isSwapChainImage = false;
 	VkClearValue clearValue = {};
-	VkPipelineColorBlendAttachmentState blendState = { .blendEnable = VK_FALSE };
+    VkPipelineColorBlendAttachmentState blendState = {
+        .blendEnable = VK_FALSE,
+        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                          VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
+	};
 };

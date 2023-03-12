@@ -41,6 +41,10 @@ public:
         return this->swapChainImageViews;
     }
 
+    VkSwapchainKHR& GetSwapChain() { 
+        return this->swapChain;
+    }
+
 private:
     friend class SwapChainBuilder;
     friend class IView;

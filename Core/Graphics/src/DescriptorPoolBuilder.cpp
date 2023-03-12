@@ -24,6 +24,12 @@ DescriptorPoolBuilder& DescriptorPoolBuilder::SetRenderPass(IntrusivePtr<RenderP
 	return *this;
 }
 
+DescriptorPoolBuilder& DescriptorPoolBuilder::SetSwapChainSize(uint32_t size)
+{
+    this->swapChainSize = size;
+    return *this;
+}
+
 void DescriptorPoolBuilder::BuildDescriptorPool()
 {
 	std::unordered_map<VkDescriptorType, uint32_t> descriptorCounterMap;
@@ -40,7 +46,7 @@ void DescriptorPoolBuilder::BuildDescriptorPool()
 	std::vector<VkDescriptorPoolSize> poolSizes;
 	for (auto& [k, v] : descriptorCounterMap)
 	{
-		poolSizes.push_back({k, v});
+		poolSizes.push_back({k, v * swapChainSize});
 	}
 
 	VkDescriptorPoolCreateInfo descriptorPoolInfo{};

@@ -58,10 +58,29 @@ void RenderPassBuilder::BuildCommandBuffers()
     commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     commandBufferAllocateInfo.commandBufferCount = swapChainSize;
 
-	renderPass->graphicCommandBuffer.resize(swapChainSize);
+	renderPass->graphicCommandBuffers.resize(swapChainSize);
     vkAllocateCommandBuffers(context->GetVkDevice(),
                              &commandBufferAllocateInfo,
-                             renderPass->graphicCommandBuffer.data());
+                             renderPass->graphicCommandBuffers.data());
+}
+
+void RenderPassBuilder::BuildSyncPrimitives()
+{
+    VkSemaphoreCreateInfo semaphoreCreateInfo = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+    renderPass->presentCompleteSemaphores.resize(swapChainSize);
+    renderPass->renderCompleteSemaphores.resize(swapChainSize);
+
+    for (int i = 0; i < swapChainSize; i++) {
+        vkCreateSemaphore(context->GetVkDevice(),
+                          &semaphoreCreateInfo,
+                          nullptr,
+                          &renderPass->presentCompleteSemaphores[i]);
+
+        vkCreateSemaphore(context->GetVkDevice(),
+                          &semaphoreCreateInfo,
+                          nullptr,
+                          &renderPass->renderCompleteSemaphores[i]);
+    }
 }
 
 void RenderPassBuilder::BuildSubPass()
@@ -111,5 +130,6 @@ IntrusivePtr<RenderPass> RenderPassBuilder::Build()
 	this->renderPass->attachments = this->attachments;
 	BuildSubPass();
     BuildCommandBuffers();
+    BuildSyncPrimitives();
 	return renderPass;
 }

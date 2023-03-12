@@ -7,9 +7,10 @@ set(GLSL_VALIDATOR "${VULKAN_SDK}/Bin/glslangValidator")
 find_package(Boost REQUIRED COMPONENTS system)
 
 FILE(GLOB SRC
-        "./*.cpp"
-        "./include/*.cpp"
-        "./src/*.cpp"
+        "./Src/*.cpp"
+        "./Graphics/*.cpp"
+        "./Graphics/include/*.cpp"
+        "./Graphics/src/*.cpp"
 )
 
 file(GLOB_RECURSE GLSL_SOURCE_FILES
@@ -38,6 +39,7 @@ add_library(GMetalCore STATIC ${SRC})
 add_dependencies(GMetalCore Shaders)
 
 target_include_directories(GMetalCore PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/Graphics/include
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${VULKAN_SDK}/Include
         ${Boost_INCLUDE_DIRS}
@@ -46,6 +48,9 @@ target_include_directories(GMetalCore PUBLIC
 target_link_libraries(GMetalCore PRIVATE
         spdlog
         ${Boost_LIBRARIES}
+)
+
+target_link_libraries(GMetalCore PUBLIC
         GMetalUtils
 )
 

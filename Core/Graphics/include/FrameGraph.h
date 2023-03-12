@@ -86,6 +86,8 @@ private:
 
 	IntrusivePtr<RenderPass> renderPass;
 
+	inline static uint32_t currentFrame = 0;
+
 	void printNode() {
 		for (auto n : passNodes) {
 			spdlog::info("{} count: {}", n->name.c_str(), n->refCount);

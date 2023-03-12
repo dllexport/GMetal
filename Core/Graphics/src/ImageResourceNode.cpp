@@ -15,8 +15,8 @@ ImageResourceNode::ImageResourceNode(VkFormat format) {
     vad.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 }
 
-ImageResourceNode::ImageResourceNode(IntrusivePtr<Image>& image) {
-    this->image = image;
+ImageResourceNode::ImageResourceNode(std::vector<IntrusivePtr<Image>>& images) {
+    this->images = images;
 }
 
 ImageResourceNode::~ImageResourceNode() { }
@@ -37,7 +37,9 @@ void ImageResourceNode::AttachmentDescriptionOverride(VkAttachmentDescription de
     this->vad = description;
 }
 
-void ImageResourceNode::SetClearValue(VkClearValue clearValue) { this->clearValue = clearValue; }
+void ImageResourceNode::SetClearValue(VkClearValue clearValue) { 
+    this->clearValue = clearValue;
+}
 
 void ImageResourceNode::SetColorBlendAttachmentState(VkPipelineColorBlendAttachmentState state) {
     this->blendState = state;
@@ -57,9 +59,7 @@ void ImageResourceNode::SetDepthStencil() {
 }
 
 void ImageResourceNode::SetSwapChainImage() {
-    if (image) {
-        vad.format = image->GetFormat();
-    }
+    vad.format = images[0]->GetFormat();
     vad.flags = 0;
     vad.samples = VK_SAMPLE_COUNT_1_BIT;
     vad.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -69,39 +69,51 @@ void ImageResourceNode::SetSwapChainImage() {
     vad.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     vad.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     this->isSwapChainImage = true;
+    this->clearValue.color = {0.0f, 0.0f, 0.0f, 1.0f};
 }
 
 void ImageResourceNode::Accept(ResourceNodeVisitor* visitor) { visitor->Visit(this); }
 
-void ImageResourceNode::Resolve(VkExtent3D extent) {
-    if (!image) {
+void ImageResourceNode::Resolve(VkExtent3D extent, uint32_t size) {
+
+    if (images.empty()) {
         VkImageUsageFlags imageUsage =
                 VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
         if (isDepthStencil) {
-            imageUsage =
-                    VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            imageUsage = VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+                         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
         }
 
-        image = ImageBuilder(this->fg->Context())
-                        .SetBasic(VK_IMAGE_TYPE_2D,
-                                  vad.format,
-                                  VkExtent3D{extent.height, extent.width, 1},
-                                  imageUsage)
-                        .Build();
+        this->images = ImageBuilder(this->fg->Context())
+                               .SetBasic(VK_IMAGE_TYPE_2D,
+                                         vad.format,
+                                         VkExtent3D{extent.height, extent.width, 1},
+                                         imageUsage)
+                               .BuildVector(size);
     }
-    
-    if (!imageView) {
+
+    if (!imageViews.empty()) {
+        return;
+    }
+
+    for (int i = 0; i < size; i++)
+    {
         VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT;
         if (isDepthStencil) {
             aspect = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
         }
 
-        imageView = ImageViewBuilder(fg->Context())
-                            .SetBasic(image, VK_IMAGE_VIEW_TYPE_2D, image->GetFormat(), aspect)
-                            .Build();
+        imageViews.push_back(
+                ImageViewBuilder(fg->Context())
+                        .SetBasic(images[i], VK_IMAGE_VIEW_TYPE_2D, images[i]->GetFormat(), aspect)
+                        .Build());
     }
 }
 
-IntrusivePtr<Image>& ImageResourceNode::GetImage() { return image; }
+IntrusivePtr<Image> ImageResourceNode::GetImage(uint32_t index) { return images[index]; }
 
-IntrusivePtr<ImageView>& ImageResourceNode::GetImageView() { return imageView; }
+IntrusivePtr<ImageView> ImageResourceNode::GetImageView(uint32_t index) { return imageViews[index]; }
+
+std::vector<IntrusivePtr<Image>>& ImageResourceNode::GetImages() { return images; }
+
+std::vector<IntrusivePtr<ImageView>>& ImageResourceNode::GetImageViews() { return imageViews; }

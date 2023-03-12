@@ -39,4 +39,5 @@ private:
 	uint32_t swapChainSize = 0;
     void BuildSubPass();
     void BuildCommandBuffers();
+    void BuildSyncPrimitives();
 };
